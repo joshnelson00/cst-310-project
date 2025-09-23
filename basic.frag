@@ -1,7 +1,8 @@
 #version 330 core
-out vec4 color;
+out vec4 FragColor;
+uniform vec4 prismColor; // one color per prism
 
 void main()
 {
-    color = vec4(105.0 / 255.0, 105.0 / 255.0, 107.0 / 255.0, 1.0);
+    FragColor = prismColor;
 }

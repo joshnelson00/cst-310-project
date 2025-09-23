@@ -1,0 +1,14 @@
+GIT INSTRUCTONS:
+
+1. git add .
+2. git commit -m "<commit message>"
+3. git push origin main
+
+
+Camera Controls:
+* WASD to move Forward/Back and Left/Right
+* Scroll Wheel to move Up/Down
+* Ctrl + C to reset Camera Position
+
+
+

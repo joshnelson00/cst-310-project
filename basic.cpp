@@ -1,194 +1,235 @@
 // ===========================
-// Base OpenGL Project (C++)
+// OpenGL Rectangular Prism from Screen Coordinates
 // Using: GLFW, GLEW, GLM, custom Shader class
-// Renders a rectangular prism matching screen coords
 // ===========================
 
 #include <iostream>
+#include <vector>
 
-// GLEW
 #define GLEW_STATIC
 #include <GL/glew.h>
-
-// GLFW
 #include <GLFW/glfw3.h>
-
-// GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-// Custom Shader loader
 #include "Shader.h"
 
-// Function prototypes
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-
-// Window dimensions
 const GLuint WIDTH = 702, HEIGHT = 1062;
 
-// Camera globals
 glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
 
-int main()
+glm::vec3 initialCameraPos   = cameraPos;
+glm::vec3 initialCameraFront = cameraFront;
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
+float screenToNDC_X(float x) { return (2.0f * x / WIDTH) - 1.0f; }
+float screenToNDC_Y(float y) { return 1.0f - (2.0f * y / HEIGHT); }
+
+std::vector<GLfloat> createPrismVertices(const std::vector<std::pair<int,int>>& corners, float zFront, float zBack)
 {
-    // --- Init GLFW ---
-    glfwInit();
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Rectangular Prism", nullptr, nullptr);
-    if (!window)
+    if(corners.size() != 4)
     {
-        std::cout << "Failed to create GLFW window!" << std::endl;
-        glfwTerminate();
-        return -1;
+        std::cerr << "Error: corners must have exactly 4 points." << std::endl;
+        return {};
     }
 
-    glfwMakeContextCurrent(window);
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    float x0 = screenToNDC_X(corners[0].first);
+    float y0 = screenToNDC_Y(corners[0].second);
+    float x1 = screenToNDC_X(corners[1].first);
+    float y1 = screenToNDC_Y(corners[1].second);
+    float x2 = screenToNDC_X(corners[2].first);
+    float y2 = screenToNDC_Y(corners[2].second);
+    float x3 = screenToNDC_X(corners[3].first);
+    float y3 = screenToNDC_Y(corners[3].second);
 
-    glewExperimental = GL_TRUE;
-    if (glewInit() != GLEW_OK)
-    {
-        std::cout << "Failed to initialize GLEW!" << std::endl;
-        return -1;
-    }
+    std::vector<GLfloat> vertices = {
+        x0, y0, zFront,  x1, y1, zFront,  x2, y2, zFront,
+        x2, y2, zFront,  x3, y3, zFront,  x0, y0, zFront,
 
-    glViewport(0, 0, WIDTH, HEIGHT);
-    glEnable(GL_DEPTH_TEST);
+        x0, y0, zBack,   x1, y1, zBack,   x2, y2, zBack,
+        x2, y2, zBack,   x3, y3, zBack,   x0, y0, zBack,
 
-    Shader shader("basic.vs", "basic.frag");
+        x0, y0, zFront,  x0, y0, zBack,   x3, y3, zBack,
+        x3, y3, zBack,   x3, y3, zFront,  x0, y0, zFront,
 
-    // --- Rectangular prism vertices ---
-    GLfloat vertices[] = {
-        // Front face
-        0.114f, -0.141f, -0.5f,
-        0.364f, -0.141f, -0.5f,
-        0.364f, -0.092f, -0.5f,
-        0.364f, -0.092f, -0.5f,
-        0.114f, -0.092f, -0.5f,
-        0.114f, -0.141f, -0.5f,
+        x1, y1, zFront,  x1, y1, zBack,   x2, y2, zBack,
+        x2, y2, zBack,   x2, y2, zFront,  x1, y1, zFront,
 
-        // Back face
-        0.114f, -0.141f, -1.0f,
-        0.364f, -0.141f, -1.0f,
-        0.364f, -0.092f, -1.0f,
-        0.364f, -0.092f, -1.0f,
-        0.114f, -0.092f, -1.0f,
-        0.114f, -0.141f, -1.0f,
+        x0, y0, zFront,  x1, y1, zFront,  x1, y1, zBack,
+        x1, y1, zBack,   x0, y0, zBack,   x0, y0, zFront,
 
-        // Left face
-        0.114f, -0.092f, -0.5f,
-        0.114f, -0.141f, -0.5f,
-        0.114f, -0.141f, -1.0f,
-        0.114f, -0.141f, -1.0f,
-        0.114f, -0.092f, -1.0f,
-        0.114f, -0.092f, -0.5f,
-
-        // Right face
-        0.364f, -0.092f, -0.5f,
-        0.364f, -0.141f, -0.5f,
-        0.364f, -0.141f, -1.0f,
-        0.364f, -0.141f, -1.0f,
-        0.364f, -0.092f, -1.0f,
-        0.364f, -0.092f, -0.5f,
-
-        // Bottom face
-        0.114f, -0.141f, -0.5f,
-        0.364f, -0.141f, -0.5f,
-        0.364f, -0.141f, -1.0f,
-        0.364f, -0.141f, -1.0f,
-        0.114f, -0.141f, -1.0f,
-        0.114f, -0.141f, -0.5f,
-
-        // Top face
-        0.114f, -0.092f, -0.5f,
-        0.364f, -0.092f, -0.5f,
-        0.364f, -0.092f, -1.0f,
-        0.364f, -0.092f, -1.0f,
-        0.114f, -0.092f, -1.0f,
-        0.114f, -0.092f, -0.5f
+        x3, y3, zFront,  x2, y2, zFront,  x2, y2, zBack,
+        x2, y2, zBack,   x3, y3, zBack,   x3, y3, zFront
     };
 
-    GLuint VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
+    return vertices;
+}
 
-    glBindVertexArray(VAO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+// Helper to convert 0-255 RGB to glm::vec4 (RGBA)
+glm::vec4 rgb255(int r, int g, int b, int a = 255) {
+    return glm::vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+}
 
+int main()
+{
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE,GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Prisms", nullptr, nullptr);
+    if(!window){ std::cout<<"Failed to create window\n"; glfwTerminate(); return -1; }
+    glfwMakeContextCurrent(window);
+    glfwSetKeyCallback(window,key_callback);
+    glfwSetScrollCallback(window,scroll_callback);
+
+    glewExperimental = GL_TRUE;
+    if(glewInit()!=GLEW_OK){ std::cout<<"Failed to initialize GLEW\n"; return -1; }
+
+    glViewport(0,0,WIDTH,HEIGHT);
+    glEnable(GL_DEPTH_TEST);
+
+    Shader shader("basic.vs","basic.frag");
+
+    // --- Glasses Case ---
+    std::vector<std::pair<int,int>> corners1 = { {391,580}, {479,580}, {479,606}, {391,606} };
+    glm::vec4 color1 = rgb255(105,105,107); // gray
+    std::vector<GLfloat> vertices1 = createPrismVertices(corners1,-0.5f,-1.0f);
+
+    GLuint VAO1,VBO1;
+    glGenVertexArrays(1,&VAO1);
+    glGenBuffers(1,&VBO1);
+    glBindVertexArray(VAO1);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO1);
+    glBufferData(GL_ARRAY_BUFFER,vertices1.size()*sizeof(GLfloat),vertices1.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Bible ---
+    std::vector<std::pair<int,int>> corners2 = { {376,610}, {505,610}, {505,632}, {376,632} };
+    glm::vec4 color2 = rgb255(150,153,149);// light gray
+    std::vector<GLfloat> vertices2 = createPrismVertices(corners2,-0.5f,-1.0f);
+
+    GLuint VAO2,VBO2;
+    glGenVertexArrays(1,&VAO2);
+    glGenBuffers(1,&VBO2);
+    glBindVertexArray(VAO2);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO2);
+    glBufferData(GL_ARRAY_BUFFER,vertices2.size()*sizeof(GLfloat),vertices2.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Wall ---
+    glm::vec4 color3 = rgb255(233, 227, 213); // cream
+    std::vector<GLfloat> vertices3 = {
+        -1.0f, -1.0f, 0.0f,  // bottom-left
+        1.0f, -1.0f, 0.0f,   // bottom-right
+        1.0f,  1.0f, 0.0f,   // top-right
+
+        1.0f,  1.0f, 0.0f,   // top-right
+        -1.0f,  1.0f, 0.0f,  // top-left
+        -1.0f, -1.0f, 0.0f   // bottom-left
+    };
+
+    GLuint VAO3, VBO3;
+    glGenVertexArrays(1, &VAO3);
+    glGenBuffers(1, &VBO3);
+    glBindVertexArray(VAO3);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO3);
+    glBufferData(GL_ARRAY_BUFFER, vertices3.size() * sizeof(GLfloat), vertices3.data(), GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
-    // --- Render Loop ---
-    while (!glfwWindowShouldClose(window))
+    // --- Render loop ---
+    while(!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
 
-        const float cameraSpeed = 0.05f;
-        const float cameraStrafeSpeed = 0.02f;
+        // Camera movement
+        float cameraSpeed = 0.01f;      // forward/backward speed
+        float strafeSpeed = cameraSpeed * 0.5f;  // left/right speed is half
 
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            cameraPos += cameraSpeed * cameraFront;
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            cameraPos -= cameraSpeed * cameraFront;
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraStrafeSpeed;
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraStrafeSpeed;
+        glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
+
+        if(glfwGetKey(window,GLFW_KEY_W)==GLFW_PRESS) cameraPos += cameraSpeed * cameraFront;
+        if(glfwGetKey(window,GLFW_KEY_S)==GLFW_PRESS) cameraPos -= cameraSpeed * cameraFront;
+        if(glfwGetKey(window,GLFW_KEY_A)==GLFW_PRESS) cameraPos -= strafeSpeed * right;
+        if(glfwGetKey(window,GLFW_KEY_D)==GLFW_PRESS) cameraPos += strafeSpeed * right;
 
         cameraPos.y = glm::clamp(cameraPos.y, -5.0f, 5.0f);
 
-        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-        // Clear
+        // Clear screen
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         shader.Use();
-        // Transformation for Glasses Case
-        glm::mat4 model = glm::mat4(1.0f);
+
+        // --- Draw wall first ---
+        glDisable(GL_DEPTH_TEST); // ensure wall is always in back
+        glm::mat4 identity = glm::mat4(1.0f);
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(identity));
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "view"), 1, GL_FALSE, glm::value_ptr(identity));
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(identity));
+
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color3));
+        glBindVertexArray(VAO3);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+        glEnable(GL_DEPTH_TEST); // re-enable for 3D objects
+
+        // --- Draw 3D objects ---
+        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
         glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WIDTH / HEIGHT, 0.1f, 100.0f);
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(identity));
 
-        GLint modelLoc = glGetUniformLocation(shader.Program, "model");
-        GLint viewLoc  = glGetUniformLocation(shader.Program, "view");
-        GLint projLoc  = glGetUniformLocation(shader.Program, "projection");
+        // Draw glasses case
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color1));
+        glBindVertexArray(VAO1);
+        glDrawArrays(GL_TRIANGLES, 0, vertices1.size()/3);
+        glBindVertexArray(0);
 
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-        glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // Draw bible
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color2));
+        glBindVertexArray(VAO2);
+        glDrawArrays(GL_TRIANGLES, 0, vertices2.size()/3);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1,&VAO1); glDeleteBuffers(1,&VBO1);
+    glDeleteVertexArrays(1,&VAO2); glDeleteBuffers(1,&VBO2);
+    glDeleteVertexArrays(1,&VAO3); glDeleteBuffers(1,&VBO3);
     glfwTerminate();
     return 0;
 }
 
-// ===========================
-// Callbacks
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
+void key_callback(GLFWwindow* window,int key,int scancode,int action,int mode)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
+    if(key==GLFW_KEY_ESCAPE && action==GLFW_PRESS)
+        glfwSetWindowShouldClose(window,GL_TRUE);
+
+    // Control + C resets camera
+    if(key==GLFW_KEY_C && (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+                           glfwGetKey(window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS))
+    {
+        cameraPos = initialCameraPos;
+        cameraFront = initialCameraFront;
+        std::cout << "Camera reset to initial position.\n";
+    }
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void scroll_callback(GLFWwindow* window,double xoffset,double yoffset)
 {
-    cameraPos.y += static_cast<float>(yoffset) * 0.2f;
+    cameraPos.y += static_cast<float>(yoffset)*0.2f;
 }
