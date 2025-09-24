@@ -96,10 +96,12 @@ int main()
 
     Shader shader("basic.vs","basic.frag");
 
-    // --- Glasses Case ---
-    std::vector<std::pair<int,int>> corners1 = { {391,580}, {479,580}, {479,606}, {391,606} };
+    // --- Glasses Case (on top of Bible) ---
+    std::vector<std::pair<int,int>> corners1 = {
+        {400, 590}, {480, 590}, {480, 610}, {400, 610}
+    };
     glm::vec4 color1 = rgb255(105,105,107); // gray
-    std::vector<GLfloat> vertices1 = createPrismVertices(corners1,-0.5f,-1.0f);
+    std::vector<GLfloat> vertices1 = createPrismVertices(corners1,-0.5f,-0.6f);
 
     GLuint VAO1,VBO1;
     glGenVertexArrays(1,&VAO1);
@@ -112,9 +114,11 @@ int main()
     glBindVertexArray(0);
 
     // --- Bible ---
-    std::vector<std::pair<int,int>> corners2 = { {376,610}, {505,610}, {505,632}, {376,632} };
+    std::vector<std::pair<int,int>> corners2 = {
+        {376,610}, {505,610}, {505,632}, {376,632}
+    };
     glm::vec4 color2 = rgb255(150,153,149);// light gray
-    std::vector<GLfloat> vertices2 = createPrismVertices(corners2,-0.5f,-1.0f);
+    std::vector<GLfloat> vertices2 = createPrismVertices(corners2,-0.5f,-0.8f);
 
     GLuint VAO2,VBO2;
     glGenVertexArrays(1,&VAO2);
@@ -125,6 +129,7 @@ int main()
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+
 
     // --- Wall ---
     glm::vec4 color3 = rgb255(233, 227, 213); // cream
@@ -147,6 +152,58 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+
+    // --- DVD Player Pt1 ---
+    std::vector<std::pair<int,int>> corners4 = {
+        {340,712}, {438,712}, {438,729}, {340,729}
+    };
+    glm::vec4 color4 = rgb255(43, 43, 41); // light gray
+    std::vector<GLfloat> vertices4 = createPrismVertices(corners4,-0.5f,-1.0f);
+
+    GLuint VAO4,VBO4;
+    glGenVertexArrays(1,&VAO4);
+    glGenBuffers(1,&VBO4);
+    glBindVertexArray(VAO4);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO4);
+    glBufferData(GL_ARRAY_BUFFER,vertices4.size()*sizeof(GLfloat),vertices4.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- DVD Player Pt2 (flush with Pt1) ---
+    std::vector<std::pair<int,int>> corners5 = {
+        {438,712}, {471,712}, {471,729}, {438,729}
+    };
+    glm::vec4 color5 = rgb255(10, 10, 10); // near black
+    std::vector<GLfloat> vertices5 = createPrismVertices(corners5,-0.5f,-1.0f);
+
+    GLuint VAO5,VBO5;
+    glGenVertexArrays(1,&VAO5);
+    glGenBuffers(1,&VBO5);
+    glBindVertexArray(VAO5);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO5);
+    glBufferData(GL_ARRAY_BUFFER,vertices5.size()*sizeof(GLfloat),vertices5.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Cabinet Top ---
+    std::vector<std::pair<int,int>> corners6 = {
+        {0, 632}, {702,632}, {702,644}, {0,644}
+    };
+    glm::vec4 color6 = rgb255(70, 46, 29); // brown (will add texture)
+    std::vector<GLfloat> vertices6 = createPrismVertices(corners6,-0.5f,-1.0f);
+
+    GLuint VAO6,VBO6;
+    glGenVertexArrays(1,&VAO6);
+    glGenBuffers(1,&VBO6);
+    glBindVertexArray(VAO6);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO6);
+    glBufferData(GL_ARRAY_BUFFER,vertices6.size()*sizeof(GLfloat),vertices6.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
 
     // --- Render loop ---
     while(!glfwWindowShouldClose(window))
@@ -202,6 +259,24 @@ int main()
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color2));
         glBindVertexArray(VAO2);
         glDrawArrays(GL_TRIANGLES, 0, vertices2.size()/3);
+        glBindVertexArray(0);
+
+        // Draw dvd player pt1
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color4));
+        glBindVertexArray(VAO4);
+        glDrawArrays(GL_TRIANGLES, 0, vertices4.size()/3);
+        glBindVertexArray(0);
+
+        // Draw dvd player pt2
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color5));
+        glBindVertexArray(VAO5);
+        glDrawArrays(GL_TRIANGLES, 0, vertices5.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Cabinet Top
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color6));
+        glBindVertexArray(VAO6);
+        glDrawArrays(GL_TRIANGLES, 0, vertices6.size()/3);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);

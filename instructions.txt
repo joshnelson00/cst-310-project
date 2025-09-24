@@ -10,5 +10,4 @@ Camera Controls:
 * Scroll Wheel to move Up/Down
 * Ctrl + C to reset Camera Position
 
-This is a test...
-
+For Josh: /mnt/c/Users/Josh/Desktop/Coding/CST-310/cst-310-project
