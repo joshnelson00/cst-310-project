@@ -299,6 +299,77 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
+    // --- TV ---
+    std::vector<std::pair<int,int>> corners12 = {
+        {143,180}, {625,180}, {625,554}, {143,554}
+    };
+
+    glm::vec4 color12 = rgb255(21, 18, 18); // TV Screen 
+    std::vector<GLfloat> vertices12 = createPrismVertices(corners12, -0.9f, -1.0f);
+
+    GLuint VAO12, VBO12;
+    glGenVertexArrays(1, &VAO12);
+    glGenBuffers(1, &VBO12);
+    glBindVertexArray(VAO12);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO12);
+    glBufferData(GL_ARRAY_BUFFER, vertices12.size() * sizeof(GLfloat), vertices12.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- TV boarder ---
+    std::vector<std::pair<int,int>> corners13 = {
+        {143,554}, {625,554}, {625,544}, {143,544}
+    };
+
+    glm::vec4 color13 = rgb255(41, 40, 38); // TV Boarder
+    std::vector<GLfloat> vertices13 = createPrismVertices(corners13, -0.88, -0.9f);
+
+    GLuint VAO13, VBO13;
+    glGenVertexArrays(1, &VAO13);
+    glGenBuffers(1, &VBO13);
+    glBindVertexArray(VAO13);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO13);
+    glBufferData(GL_ARRAY_BUFFER, vertices13.size() * sizeof(GLfloat), vertices13.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Switch case ---
+    std::vector<std::pair<int,int>> corners14 = {
+        {11,518}, {171,518}, {171,582}, {11,582}
+    };
+
+    glm::vec4 color14 = rgb255(125, 122, 113); // TV Boarder
+    std::vector<GLfloat> vertices14 = createPrismVertices(corners14, -0.6, -0.8f);
+
+    GLuint VAO14, VBO14;
+    glGenVertexArrays(1, &VAO14);
+    glGenBuffers(1, &VBO14);
+    glBindVertexArray(VAO14);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO14);
+    glBufferData(GL_ARRAY_BUFFER, vertices14.size() * sizeof(GLfloat), vertices14.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Switch case zipper ---
+    std::vector<std::pair<int,int>> corners15 = {
+        {7,545}, {175,545}, {175,559}, {7,559}
+    };
+
+    glm::vec4 color15 = rgb255(39, 35, 34); // TV Boarder
+    std::vector<GLfloat> vertices15 = createPrismVertices(corners15, -0.55, -0.81f);
+
+    GLuint VAO15, VBO15;
+    glGenVertexArrays(1, &VAO15);
+    glGenBuffers(1, &VBO15);
+    glBindVertexArray(VAO15);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO15);
+    glBufferData(GL_ARRAY_BUFFER, vertices15.size() * sizeof(GLfloat), vertices15.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
 
 
     // --- Render loop ---
@@ -405,6 +476,29 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, vertices11.size()/3);
         glBindVertexArray(0);
 
+        // Draw TV
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color12));
+        glBindVertexArray(VAO12);
+        glDrawArrays(GL_TRIANGLES, 0, vertices12.size()/3);
+        glBindVertexArray(0);
+
+        // Draw TV boarder
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color13));
+        glBindVertexArray(VAO13);
+        glDrawArrays(GL_TRIANGLES, 0, vertices13.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Switch case
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color14));
+        glBindVertexArray(VAO14);
+        glDrawArrays(GL_TRIANGLES, 0, vertices14.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Switch case zipper
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color15));
+        glBindVertexArray(VAO15);
+        glDrawArrays(GL_TRIANGLES, 0, vertices15.size()/3);
+        glBindVertexArray(0);
 
 
         glfwSwapBuffers(window);
