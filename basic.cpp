@@ -340,7 +340,7 @@ int main()
         {11,518}, {171,518}, {171,582}, {11,582}
     };
 
-    glm::vec4 color14 = rgb255(125, 122, 113); // TV Boarder
+    glm::vec4 color14 = rgb255(125, 122, 113); // Switch Case
     std::vector<GLfloat> vertices14 = createPrismVertices(corners14, -0.6, -0.8f);
 
     GLuint VAO14, VBO14;
@@ -358,7 +358,7 @@ int main()
         {7,545}, {175,545}, {175,559}, {7,559}
     };
 
-    glm::vec4 color15 = rgb255(39, 35, 34); // TV Boarder
+    glm::vec4 color15 = rgb255(39, 35, 34); // Zipper Color
     std::vector<GLfloat> vertices15 = createPrismVertices(corners15, -0.55, -0.81f);
 
     GLuint VAO15, VBO15;
