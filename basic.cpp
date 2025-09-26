@@ -551,6 +551,42 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
+    // tv leg 1 ---
+    std::vector<std::pair<int,int>> corners26 = {
+    {203, 544}, {215, 544}, {199, 582}, {193, 582},
+    };
+
+    glm::vec4 color26 = rgb255(33, 33, 33); // black
+    std::vector<GLfloat> vertices26 = createPrismVertices(corners26,-0.9f,-1.0f);
+
+    GLuint VAO26,VBO26;
+    glGenVertexArrays(1,&VAO26);
+    glGenBuffers(1,&VBO26);
+    glBindVertexArray(VAO26);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO26);
+    glBufferData(GL_ARRAY_BUFFER,vertices26.size()*sizeof(GLfloat),vertices26.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // tv leg 2 ---
+    std::vector<std::pair<int,int>> corners27 = {
+    {203, 544}, {215, 544}, {224, 582}, {219, 582}
+    };
+
+    glm::vec4 color27 = rgb255(33, 33, 33); // black
+    std::vector<GLfloat> vertices27 = createPrismVertices(corners27,-0.9f,-1.0f);
+
+    GLuint VAO27,VBO27;
+    glGenVertexArrays(1,&VAO27);
+    glGenBuffers(1,&VBO27);
+    glBindVertexArray(VAO27);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO27);
+    glBufferData(GL_ARRAY_BUFFER,vertices27.size()*sizeof(GLfloat),vertices27.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
 
     // --- Render loop ---
     while(!glfwWindowShouldClose(window))
@@ -740,6 +776,17 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, vertices25.size()/3);
         glBindVertexArray(0);
 
+        // Draw TV Stand 1
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color26));
+        glBindVertexArray(VAO26);
+        glDrawArrays(GL_TRIANGLES, 0, vertices26.size()/3);
+        glBindVertexArray(0);
+
+        // Draw TV Stand 2
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color27));
+        glBindVertexArray(VAO27);
+        glDrawArrays(GL_TRIANGLES, 0, vertices27.size()/3);
+        glBindVertexArray(0);
 
         glfwSwapBuffers(window);
     }
