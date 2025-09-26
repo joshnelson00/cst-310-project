@@ -371,6 +371,186 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
+    // --- Waterbottle ---
+    std::vector<std::pair<int,int>> corners16 = {
+        {67,451}, {113,451}, {113,582}, {67,582}
+    };
+
+    glm::vec4 color16 = rgb255(80, 52, 125); // Purple
+    std::vector<GLfloat> vertices16 = createPrismVertices(corners16, -0.8, -0.9f);
+
+    GLuint VAO16, VBO16;
+    glGenVertexArrays(1, &VAO16);
+    glGenBuffers(1, &VBO16);
+    glBindVertexArray(VAO16);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO16);
+    glBufferData(GL_ARRAY_BUFFER, vertices16.size() * sizeof(GLfloat), vertices16.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Waterbottle neck ---
+    std::vector<std::pair<int,int>> corners17 = {
+        {72,431}, {108,431}, {108,451}, {72,451}
+    };
+
+    glm::vec4 color17 = rgb255(80, 52, 125); // Purple
+    std::vector<GLfloat> vertices17 = createPrismVertices(corners17, -0.8, -0.9f);
+
+    GLuint VAO17, VBO17;
+    glGenVertexArrays(1, &VAO17);
+    glGenBuffers(1, &VBO17);
+    glBindVertexArray(VAO17);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO17);
+    glBufferData(GL_ARRAY_BUFFER, vertices17.size() * sizeof(GLfloat), vertices17.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Waterbottle silver ring ---
+    std::vector<std::pair<int,int>> corners18 = {
+        {72,426}, {108,426}, {108,431}, {72,431}
+    };
+
+    glm::vec4 color18 = rgb255(135, 127, 133); // silver
+    std::vector<GLfloat> vertices18 = createPrismVertices(corners18, -0.8, -0.9f);
+
+    GLuint VAO18, VBO18;
+    glGenVertexArrays(1, &VAO18);
+    glGenBuffers(1, &VBO18);
+    glBindVertexArray(VAO18);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO18);
+    glBufferData(GL_ARRAY_BUFFER, vertices18.size() * sizeof(GLfloat), vertices18.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Waterbottle Lid ---
+    std::vector<std::pair<int,int>> corners19 = {
+        {72,396}, {108,396}, {108,426}, {72,426}
+    };
+
+    glm::vec4 color19 = rgb255(30, 27, 28); // black
+    std::vector<GLfloat> vertices19 = createPrismVertices(corners19, -0.8, -0.9f);
+
+    GLuint VAO19, VBO19;
+    glGenVertexArrays(1, &VAO19);
+    glGenBuffers(1, &VBO19);
+    glBindVertexArray(VAO19);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO19);
+    glBufferData(GL_ARRAY_BUFFER, vertices19.size() * sizeof(GLfloat), vertices19.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Cabinet Base Support 3 ---
+    std::vector<std::pair<int,int>> corners20 = {
+    {0, 594}, {14, 594}, {14, 880}, {0, 880}
+    };
+
+    glm::vec4 color20 = rgb255(27, 26, 24); // black base
+    std::vector<GLfloat> vertices20 = createPrismVertices(corners20,-0.5f,-1.0f);
+
+    GLuint VAO20,VBO20;
+    glGenVertexArrays(1,&VAO20);
+    glGenBuffers(1,&VBO20);
+    glBindVertexArray(VAO20);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO20);
+    glBufferData(GL_ARRAY_BUFFER,vertices20.size()*sizeof(GLfloat),vertices20.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Cabinet Base Support 4 ---
+    std::vector<std::pair<int,int>> corners21 = {
+    {688, 594}, {702, 594}, {702, 880}, {688, 880}
+    };
+
+    glm::vec4 color21 = rgb255(27, 26, 24); // black base
+    std::vector<GLfloat> vertices21 = createPrismVertices(corners21,-0.5f,-1.0f);
+
+    GLuint VAO21,VBO21;
+    glGenVertexArrays(1,&VAO21);
+    glGenBuffers(1,&VBO21);
+    glBindVertexArray(VAO21);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO21);
+    glBufferData(GL_ARRAY_BUFFER,vertices21.size()*sizeof(GLfloat),vertices21.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // switch dock ---
+    std::vector<std::pair<int,int>> corners22 = {
+    {562, 529}, {658, 529}, {658, 582}, {562, 582}
+    };
+
+    glm::vec4 color22 = rgb255(227, 224, 215); // white
+    std::vector<GLfloat> vertices22 = createPrismVertices(corners22,-0.5f,-0.7f);
+
+    GLuint VAO22,VBO22;
+    glGenVertexArrays(1,&VAO22);
+    glGenBuffers(1,&VBO22);
+    glBindVertexArray(VAO22);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO22);
+    glBufferData(GL_ARRAY_BUFFER,vertices22.size()*sizeof(GLfloat),vertices22.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // switch ---
+    std::vector<std::pair<int,int>> corners23 = {
+    {562, 514}, {658, 514}, {658, 572}, {562, 572}
+    };
+
+    glm::vec4 color23 = rgb255(33, 33, 33); // black
+    std::vector<GLfloat> vertices23 = createPrismVertices(corners23,-0.55f,-0.65f);
+
+    GLuint VAO23,VBO23;
+    glGenVertexArrays(1,&VAO23);
+    glGenBuffers(1,&VBO23);
+    glBindVertexArray(VAO23);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO23);
+    glBufferData(GL_ARRAY_BUFFER,vertices23.size()*sizeof(GLfloat),vertices23.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Joy Con L ---
+    std::vector<std::pair<int,int>> corners24 = {
+    {547, 514}, {562, 514}, {562, 572}, {547, 572}
+    };
+
+    glm::vec4 color24 = rgb255(253, 58, 65); // red
+    std::vector<GLfloat> vertices24 = createPrismVertices(corners24,-0.55f,-0.65f);
+
+    GLuint VAO24,VBO24;
+    glGenVertexArrays(1,&VAO24);
+    glGenBuffers(1,&VBO24);
+    glBindVertexArray(VAO24);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO24);
+    glBufferData(GL_ARRAY_BUFFER,vertices24.size()*sizeof(GLfloat),vertices24.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Joy Con R ---
+    std::vector<std::pair<int,int>> corners25 = {
+    {658, 514}, {673, 514}, {673, 572}, {658, 572}
+    };
+
+    glm::vec4 color25 = rgb255(4, 135, 183); // blue
+    std::vector<GLfloat> vertices25 = createPrismVertices(corners25,-0.55f,-0.65f);
+
+    GLuint VAO25,VBO25;
+    glGenVertexArrays(1,&VAO25);
+    glGenBuffers(1,&VBO25);
+    glBindVertexArray(VAO25);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO25);
+    glBufferData(GL_ARRAY_BUFFER,vertices25.size()*sizeof(GLfloat),vertices25.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
 
     // --- Render loop ---
     while(!glfwWindowShouldClose(window))
@@ -498,6 +678,66 @@ int main()
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color15));
         glBindVertexArray(VAO15);
         glDrawArrays(GL_TRIANGLES, 0, vertices15.size()/3);
+        glBindVertexArray(0);
+
+        // Draw waterbottle
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color16));
+        glBindVertexArray(VAO16);
+        glDrawArrays(GL_TRIANGLES, 0, vertices16.size()/3);
+        glBindVertexArray(0);
+
+        // Draw waterbottle neck
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color17));
+        glBindVertexArray(VAO17);
+        glDrawArrays(GL_TRIANGLES, 0, vertices17.size()/3);
+        glBindVertexArray(0);
+
+        // Draw waterbottle silver ring
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color18));
+        glBindVertexArray(VAO18);
+        glDrawArrays(GL_TRIANGLES, 0, vertices18.size()/3);
+        glBindVertexArray(0);
+
+        // Draw waterbottle Lid
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color19));
+        glBindVertexArray(VAO19);
+        glDrawArrays(GL_TRIANGLES, 0, vertices19.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Cabinet Base Support 3
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color20));
+        glBindVertexArray(VAO20);
+        glDrawArrays(GL_TRIANGLES, 0, vertices20.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Cabinet Base Support 4
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color21));
+        glBindVertexArray(VAO21);
+        glDrawArrays(GL_TRIANGLES, 0, vertices21.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Switch Dock
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color22));
+        glBindVertexArray(VAO22);
+        glDrawArrays(GL_TRIANGLES, 0, vertices22.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Switch
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color23));
+        glBindVertexArray(VAO23);
+        glDrawArrays(GL_TRIANGLES, 0, vertices23.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Joy Con L
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color24));
+        glBindVertexArray(VAO24);
+        glDrawArrays(GL_TRIANGLES, 0, vertices24.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Joy Con R
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color25));
+        glBindVertexArray(VAO25);
+        glDrawArrays(GL_TRIANGLES, 0, vertices25.size()/3);
         glBindVertexArray(0);
 
 

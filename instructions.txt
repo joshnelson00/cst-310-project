@@ -10,4 +10,12 @@ Camera Controls:
 * Scroll Wheel to move Up/Down
 * Ctrl + C to reset Camera Position
 
-For Josh: /mnt/c/Users/Josh/Desktop/Coding/CST-310/cst-310-project
+For Josh: 
+    /mnt/c/Users/Josh/Desktop/Coding/CST-310/cst-310-project
+For Reece: 
+    /home/reece_gerhart/CST310/cst-310-project
+
+Front of the Entertainment console is -0.5f The back -1.0
+Cabinet top is 582
+cabnet left is 0
+cabnet right is 702
