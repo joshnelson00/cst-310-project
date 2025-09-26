@@ -19,3 +19,5 @@ Front of the Entertainment console is -0.5f The back -1.0
 Cabinet top is 582
 cabnet left is 0
 cabnet right is 702
+
+Bottom of tv 544

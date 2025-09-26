@@ -587,6 +587,24 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
+    // Tissue Box ---
+    std::vector<std::pair<int,int>> corners28 = {
+    {442, 788}, {487, 788}, {487, 880}, {442, 880}
+    };
+
+    glm::vec4 color28 = rgb255(240, 234, 235); // white
+    std::vector<GLfloat> vertices28 = createPrismVertices(corners28,-0.6f,-1.0f);
+
+    GLuint VAO28,VBO28;
+    glGenVertexArrays(1,&VAO28);
+    glGenBuffers(1,&VBO28);
+    glBindVertexArray(VAO28);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO28);
+    glBufferData(GL_ARRAY_BUFFER,vertices28.size()*sizeof(GLfloat),vertices28.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
 
     // --- Render loop ---
     while(!glfwWindowShouldClose(window))
@@ -786,6 +804,12 @@ int main()
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color27));
         glBindVertexArray(VAO27);
         glDrawArrays(GL_TRIANGLES, 0, vertices27.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Tissue Box
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color28));
+        glBindVertexArray(VAO28);
+        glDrawArrays(GL_TRIANGLES, 0, vertices28.size()/3);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
