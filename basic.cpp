@@ -12,7 +12,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include "Camera.h"
 #include "Shader.h"
+
 
 const GLuint WIDTH = 702, HEIGHT = 1062;
 
@@ -72,6 +75,35 @@ std::vector<GLfloat> createPrismVertices(const std::vector<std::pair<int,int>>& 
 // Helper to convert 0-255 RGB to glm::vec4 (RGBA)
 glm::vec4 rgb255(int r, int g, int b, int a = 255) {
     return glm::vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
+}
+
+
+std::vector<GLfloat> createCircleVertices(float centerX, float centerY, float z, float radius, int segments = 32)
+{
+    std::vector<GLfloat> vertices;
+    for(int i = 0; i < segments; ++i)
+    {
+        float theta1 = 2.0f * 3.1415926f * float(i) / float(segments);
+        float theta2 = 2.0f * 3.1415926f * float(i+1) / float(segments);
+
+        float x1 = centerX + radius * cos(theta1);
+        float y1 = centerY + radius * sin(theta1);
+        float x2 = centerX + radius * cos(theta2);
+        float y2 = centerY + radius * sin(theta2);
+
+        vertices.push_back(screenToNDC_X(centerX)); // Triangle center
+        vertices.push_back(screenToNDC_Y(centerY));
+        vertices.push_back(z);
+
+        vertices.push_back(screenToNDC_X(x1)); // Edge point 1
+        vertices.push_back(screenToNDC_Y(y1));
+        vertices.push_back(z);
+
+        vertices.push_back(screenToNDC_X(x2)); // Edge point 2
+        vertices.push_back(screenToNDC_Y(y2));
+        vertices.push_back(z);
+    }
+    return vertices;
 }
 
 int main()
@@ -233,7 +265,7 @@ int main()
     };
 
     glm::vec4 color8 = rgb255(27, 26, 24); // black base
-    std::vector<GLfloat> vertices8 = createPrismVertices(corners8,-0.5f,-1.0f);
+    std::vector<GLfloat> vertices8 = createPrismVertices(corners8,-0.47f,-1.0f);
 
     GLuint VAO8,VBO8;
     glGenVertexArrays(1,&VAO8);
@@ -251,7 +283,7 @@ int main()
     };
 
     glm::vec4 color9 = rgb255(27, 26, 24); // same black base
-    std::vector<GLfloat> vertices9 = createPrismVertices(corners9,-0.5f,-1.0f);
+    std::vector<GLfloat> vertices9 = createPrismVertices(corners9,-0.47f,-1.0f);
 
     GLuint VAO9,VBO9;
     glGenVertexArrays(1,&VAO9);
@@ -605,6 +637,151 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
+    // Barn Doors --
+    // --- Left Barn Door ---
+    std::vector<std::pair<int,int>> cornersLeftDoor = {
+        {0, 594}, {201, 594}, {201, 880}, {0, 880}  // extend to very left edge
+    };
+
+    // --- Right Barn Door (covers support 2 and 4) ---
+    std::vector<std::pair<int,int>> cornersRightDoor = {
+        {501, 594}, {702, 594}, {702, 880}, {501, 880}  // extend to very right edge
+    };
+
+    // Color for doors
+    glm::vec4 colorDoor = rgb255(24, 23, 21);
+
+    // Left Door vertices
+    std::vector<GLfloat> verticesLeftDoor = createPrismVertices(cornersLeftDoor, -0.47f, -0.5f);
+    GLuint VAOLeftDoor, VBOLeftDoor;
+    glGenVertexArrays(1, &VAOLeftDoor);
+    glGenBuffers(1, &VBOLeftDoor);
+    glBindVertexArray(VAOLeftDoor);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOLeftDoor);
+    glBufferData(GL_ARRAY_BUFFER, verticesLeftDoor.size() * sizeof(GLfloat), verticesLeftDoor.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Right Door vertices
+    std::vector<GLfloat> verticesRightDoor = createPrismVertices(cornersRightDoor, -0.47f, -0.5f);
+    GLuint VAORightDoor, VBORightDoor;
+    glGenVertexArrays(1, &VAORightDoor);
+    glGenBuffers(1, &VBORightDoor);
+    glBindVertexArray(VAORightDoor);
+    glBindBuffer(GL_ARRAY_BUFFER, VBORightDoor);
+    glBufferData(GL_ARRAY_BUFFER, verticesRightDoor.size() * sizeof(GLfloat), verticesRightDoor.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- X on Left Door ---
+    std::vector<GLfloat> verticesLeftX = {
+        // diagonal from top-left to bottom-right
+        screenToNDC_X(14),  screenToNDC_Y(594), -0.46f,
+        screenToNDC_X(201), screenToNDC_Y(880), -0.46f,
+
+        // diagonal from bottom-left to top-right
+        screenToNDC_X(14),  screenToNDC_Y(880), -0.46f,
+        screenToNDC_X(201), screenToNDC_Y(594), -0.46f
+    };
+
+    GLuint VAOLX, VBOLX;
+    glGenVertexArrays(1, &VAOLX);
+    glGenBuffers(1, &VBOLX);
+    glBindVertexArray(VAOLX);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOLX);
+    glBufferData(GL_ARRAY_BUFFER, verticesLeftX.size() * sizeof(GLfloat), verticesLeftX.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- X on Right Door ---
+    std::vector<GLfloat> verticesRightX = {
+        screenToNDC_X(501), screenToNDC_Y(594), -0.46f,
+        screenToNDC_X(688), screenToNDC_Y(880), -0.46f,
+
+        screenToNDC_X(501), screenToNDC_Y(880), -0.46f,
+        screenToNDC_X(688), screenToNDC_Y(594), -0.46f
+    };
+
+    GLuint VAORX, VBORX;
+    glGenVertexArrays(1, &VAORX);
+    glGenBuffers(1, &VBORX);
+    glBindVertexArray(VAORX);
+    glBindBuffer(GL_ARRAY_BUFFER, VBORX);
+    glBufferData(GL_ARRAY_BUFFER, verticesRightX.size() * sizeof(GLfloat), verticesRightX.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Barn Door Knobs ---
+    // Left door knob (right side, near center)
+    float leftKnobX = 201.0f - 8.0f; // slightly inset from center edge
+    float leftKnobY = (594 + 880) / 2.0f; // vertical center
+    float knobRadius = 5.0f;
+
+    std::vector<GLfloat> verticesLeftKnob = createCircleVertices(leftKnobX, leftKnobY, -0.46f, knobRadius);
+    GLuint VAOLeftKnob, VBOLefKnob;
+    glGenVertexArrays(1,&VAOLeftKnob);
+    glGenBuffers(1,&VBOLefKnob);
+    glBindVertexArray(VAOLeftKnob);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOLefKnob);
+    glBufferData(GL_ARRAY_BUFFER, verticesLeftKnob.size()*sizeof(GLfloat), verticesLeftKnob.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // Right door knob (left side, near center)
+    float rightKnobX = 501.0f + 8.0f; // slightly inset from center edge
+    float rightKnobY = (594 + 880) / 2.0f;
+
+    std::vector<GLfloat> verticesRightKnob = createCircleVertices(rightKnobX, rightKnobY, -0.46f, knobRadius);
+    GLuint VAORightKnob, VBORightKnob;
+    glGenVertexArrays(1,&VAORightKnob);
+    glGenBuffers(1,&VBORightKnob);
+    glBindVertexArray(VAORightKnob);
+    glBindBuffer(GL_ARRAY_BUFFER, VBORightKnob);
+    glBufferData(GL_ARRAY_BUFFER, verticesRightKnob.size()*sizeof(GLfloat), verticesRightKnob.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // --- Circle Hole ---
+    const int holeSegments = 32;
+    float holeRadius = 10.0f; // pixels
+    float holeX = 356.0f;     // pixel X
+    float holeY = 644.0f;     // pixel Y
+    float holeZ = -0.8f;     // adjustable Z-depth
+
+    float aspect = (float)HEIGHT / (float)WIDTH; // H / W
+    float cx = screenToNDC_X(holeX);
+    float cy = screenToNDC_Y(holeY);
+
+    // Generate vertices
+    std::vector<GLfloat> verticesHole;
+    for(int i = 0; i <= holeSegments; ++i) {
+        float theta = 2.0f * 3.1415926f * float(i) / float(holeSegments);
+        float x = cx + (screenToNDC_X(holeRadius) - screenToNDC_X(0)) * cos(theta);
+        float y = cy + (screenToNDC_Y(holeRadius) - screenToNDC_Y(0)) * sin(theta); // NO / aspect
+
+        verticesHole.push_back(x);
+        verticesHole.push_back(y);
+        verticesHole.push_back(holeZ); // use adjustable Z
+    }
+
+    // Create VAO/VBO
+    GLuint VAOHole, VBOHole;
+    glGenVertexArrays(1, &VAOHole);
+    glGenBuffers(1, &VBOHole);
+    glBindVertexArray(VAOHole);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOHole);
+    glBufferData(GL_ARRAY_BUFFER, verticesHole.size() * sizeof(GLfloat), verticesHole.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+
 
     // --- Render loop ---
     while(!glfwWindowShouldClose(window))
@@ -810,6 +987,48 @@ int main()
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color28));
         glBindVertexArray(VAO28);
         glDrawArrays(GL_TRIANGLES, 0, vertices28.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Left Barn Door
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(colorDoor));
+        glBindVertexArray(VAOLeftDoor);
+        glDrawArrays(GL_TRIANGLES, 0, verticesLeftDoor.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Right Barn Door
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(colorDoor));
+        glBindVertexArray(VAORightDoor);
+        glDrawArrays(GL_TRIANGLES, 0, verticesRightDoor.size()/3);
+        glBindVertexArray(0);
+
+        // Draw X on Left Door
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(rgb255(40,39,36))); // grey
+        glBindVertexArray(VAOLX);
+        glDrawArrays(GL_LINES, 0, verticesLeftX.size()/3);
+        glBindVertexArray(0);
+
+        // Draw X on Right Door
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(rgb255(40,39,36))); // grey
+        glBindVertexArray(VAORX);
+        glDrawArrays(GL_LINES, 0, verticesRightX.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Left Door Knob
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(rgb255(40,39,36)));
+        glBindVertexArray(VAOLeftKnob);
+        glDrawArrays(GL_TRIANGLES, 0, verticesLeftKnob.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Right Door Knob
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(rgb255(40,39,36)));
+        glBindVertexArray(VAORightKnob);
+        glDrawArrays(GL_TRIANGLES, 0, verticesRightKnob.size()/3);
+        glBindVertexArray(0);
+
+        // Draw the circle hole
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(rgb255(42,39,32)));
+        glBindVertexArray(VAOHole);
+        glDrawArrays(GL_TRIANGLE_FAN, 0, verticesHole.size()/3);
         glBindVertexArray(0);
 
         glfwSwapBuffers(window);
