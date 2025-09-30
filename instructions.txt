@@ -6,9 +6,10 @@ GIT INSTRUCTONS:
 
 
 Camera Controls:
-* WASD to move Forward/Back and Left/Right
-* Scroll Wheel to move Up/Down
-* Ctrl + C to reset Camera Position
+* WASD to move Up/Down/Left/Right
+* Arrows to move Camera Angle Up/Down/Left/Right
+* Q and E to Zoom in and out
+* Ctrl + C to reset Camera Position and Angle
 
 For Josh: 
     /mnt/c/Users/Josh/Desktop/Coding/CST-310/cst-310-project
