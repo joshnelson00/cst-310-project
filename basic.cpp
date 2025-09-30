@@ -308,7 +308,7 @@ int main()
     };
 
     glm::vec4 color10 = rgb255(6, 6, 6); // same black base
-    std::vector<GLfloat> vertices10 = createPrismVertices(corners10,-0.9f,-1.0f);
+    std::vector<GLfloat> vertices10 = createPrismVertices(corners10,-0.9f,-1.1f);
 
     GLuint VAO10,VBO10;
     glGenVertexArrays(1,&VAO10);
@@ -398,7 +398,7 @@ int main()
     };
 
     glm::vec4 color15 = rgb255(39, 35, 34); // Zipper Color
-    std::vector<GLfloat> vertices15 = createPrismVertices(corners15, -0.55, -0.81f);
+    std::vector<GLfloat> vertices15 = createPrismVertices(corners15, -0.59, -0.81f);
 
     GLuint VAO15, VBO15;
     glGenVertexArrays(1, &VAO15);
@@ -622,6 +622,42 @@ int main()
     glBindVertexArray(VAO27);
     glBindBuffer(GL_ARRAY_BUFFER,VBO27);
     glBufferData(GL_ARRAY_BUFFER,vertices27.size()*sizeof(GLfloat),vertices27.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // tv leg 3 ---
+    std::vector<std::pair<int,int>> corners30 = {
+    {553, 544}, {565, 544}, {554, 582}, {549, 582},
+    };
+
+    glm::vec4 color30 = rgb255(33, 33, 33); // black
+    std::vector<GLfloat> vertices30 = createPrismVertices(corners30,-0.9f,-1.0f);
+
+    GLuint VAO30,VBO30;
+    glGenVertexArrays(1,&VAO30);
+    glGenBuffers(1,&VBO30);
+    glBindVertexArray(VAO30);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO30);
+    glBufferData(GL_ARRAY_BUFFER,vertices30.size()*sizeof(GLfloat),vertices30.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    // tv leg 4 ---
+    std::vector<std::pair<int,int>> corners31 = {
+    {553, 544}, {565, 544}, {575, 582}, {569, 582}
+    };
+
+    glm::vec4 color31 = rgb255(33, 33, 33); // black
+    std::vector<GLfloat> vertices31 = createPrismVertices(corners31,-0.9f,-1.0f);
+
+    GLuint VAO31,VBO31;
+    glGenVertexArrays(1,&VAO31);
+    glGenBuffers(1,&VBO31);
+    glBindVertexArray(VAO31);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO31);
+    glBufferData(GL_ARRAY_BUFFER,vertices31.size()*sizeof(GLfloat),vertices31.data(),GL_STATIC_DRAW);
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
@@ -1029,6 +1065,18 @@ int main()
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color27));
         glBindVertexArray(VAO27);
         glDrawArrays(GL_TRIANGLES, 0, vertices27.size()/3);
+        glBindVertexArray(0);
+
+        // Draw TV Stand 3
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color30));
+        glBindVertexArray(VAO30);
+        glDrawArrays(GL_TRIANGLES, 0, vertices30.size()/3);
+        glBindVertexArray(0);
+
+        // Draw TV Stand 4
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color31));
+        glBindVertexArray(VAO31);
+        glDrawArrays(GL_TRIANGLES, 0, vertices31.size()/3);
         glBindVertexArray(0);
 
         // Draw Tissue Box
