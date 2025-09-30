@@ -23,8 +23,15 @@ glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
 
+// Camera rotation
+float yaw   = -90.0f; // start facing -Z
+float pitch = 0.0f;
+
+
 glm::vec3 initialCameraPos   = cameraPos;
 glm::vec3 initialCameraFront = cameraFront;
+float initialYaw   = -90.0f; 
+float initialPitch = 0.0f;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -636,7 +643,7 @@ int main()
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
-    
+
     // Carpet ---
     std::vector<std::pair<int,int>> corners29 = {
     {0, 906}, {702, 906}, {702, 908}, {0, 908}
@@ -807,17 +814,40 @@ int main()
         glfwPollEvents();
 
         // Camera movement
-        float cameraSpeed = 0.01f;      // forward/backward speed
-        float strafeSpeed = cameraSpeed * 0.5f;  // left/right speed is half
+    float cameraSpeed = 0.01f;                // forward/backward speed
+    float strafeSpeed = cameraSpeed * 0.5f;   // left/right speed is half
+    float angleSpeed  = 0.25f;                 // degrees per key press/frame
 
-        glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
+    glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
 
-        if(glfwGetKey(window,GLFW_KEY_W)==GLFW_PRESS) cameraPos += cameraSpeed * cameraFront;
-        if(glfwGetKey(window,GLFW_KEY_S)==GLFW_PRESS) cameraPos -= cameraSpeed * cameraFront;
-        if(glfwGetKey(window,GLFW_KEY_A)==GLFW_PRESS) cameraPos -= strafeSpeed * right;
-        if(glfwGetKey(window,GLFW_KEY_D)==GLFW_PRESS) cameraPos += strafeSpeed * right;
+    // Position controls (WASD)
+    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += cameraSpeed * cameraUp;
+    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraUp;
+    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPos += cameraSpeed * cameraFront;
+    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraFront;
+    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos -= strafeSpeed * right;
+    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += strafeSpeed * right;
 
-        cameraPos.y = glm::clamp(cameraPos.y, -5.0f, 5.0f);
+    // Clamp vertical movement
+    cameraPos.y = glm::clamp(cameraPos.y, -5.0f, 5.0f);
+
+    // Rotation controls (Arrow Keys)
+    if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)  yaw   -= angleSpeed;
+    if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) yaw   += angleSpeed;
+    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)    pitch += angleSpeed;
+    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)  pitch -= angleSpeed;
+
+    // Constrain pitch to avoid flipping
+    if(pitch > 89.0f) pitch = 89.0f;
+    if(pitch < -89.0f) pitch = -89.0f;
+
+    // Recalculate cameraFront from yaw/pitch
+    glm::vec3 front;
+    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    front.y = sin(glm::radians(pitch));
+    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(front);
+
 
         // Clear screen
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -1076,6 +1106,8 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mode)
     {
         cameraPos = initialCameraPos;
         cameraFront = initialCameraFront;
+        yaw = initialYaw;
+        pitch = initialPitch;
         std::cout << "Camera reset to initial position.\n";
     }
 }
