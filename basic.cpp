@@ -242,7 +242,7 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
-    // Cabinet Bottom Base ---
+    // Cabinet Base ---
     std::vector<std::pair<int,int>> corners7 = {
         {0, 880}, {702,880}, {702,906}, {0,906}
     };
@@ -636,6 +636,24 @@ int main()
     glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
+    
+    // Carpet ---
+    std::vector<std::pair<int,int>> corners29 = {
+    {0, 906}, {702, 906}, {702, 908}, {0, 908}
+    };
+
+    glm::vec4 color29 = rgb255(163, 150, 133); // carpet color
+    std::vector<GLfloat> vertices29 = createPrismVertices(corners29,-0.5f,1.0f);
+
+    GLuint VAO29,VBO29;
+    glGenVertexArrays(1,&VAO29);
+    glGenBuffers(1,&VBO29);
+    glBindVertexArray(VAO29);
+    glBindBuffer(GL_ARRAY_BUFFER,VBO29);
+    glBufferData(GL_ARRAY_BUFFER,vertices29.size()*sizeof(GLfloat),vertices29.data(),GL_STATIC_DRAW);
+    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);  
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
 
     // Barn Doors --
     // --- Left Barn Door ---
@@ -987,6 +1005,12 @@ int main()
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color28));
         glBindVertexArray(VAO28);
         glDrawArrays(GL_TRIANGLES, 0, vertices28.size()/3);
+        glBindVertexArray(0);
+
+        // Draw Carpet
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color29));
+        glBindVertexArray(VAO29);
+        glDrawArrays(GL_TRIANGLES, 0, vertices29.size()/3);
         glBindVertexArray(0);
 
         // Draw Left Barn Door
