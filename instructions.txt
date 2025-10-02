@@ -18,8 +18,24 @@ For Reece:
 
 Front of the Entertainment console is -0.5f The back -1.0
 Cabinet top is 582
+
 cabnet left is 0
 cabnet right is 702
 Cabanet bottom is 906
 
 Bottom of tv 544
+TV left 143
+TV right 625
+
+203 215 224 219
+60  72  81  76
+
+625 625 625 625
+565 553 544 549
+
+
+203 215 199 193
+60  72  56  50
+
+625 625 625 625
+565 553 569 575
