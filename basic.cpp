@@ -1,7 +1,13 @@
-// ===========================
-// OpenGL Rectangular Prism from Screen Coordinates
-// Using: GLFW, GLEW, GLM, custom Shader class
-// ===========================
+// ======================================================
+// Programers: Josh Nelson and Reece Gerhart
+// CST 310
+// Grand Canyon univerisity
+// Ricardo Citro
+// ======================================================
+// OpenGL Basic Scene With Primitives
+// Imports: GLFW, GLEW, GLM, 
+// Using: custom Shader class, .vs and .frag Files
+// ======================================================
 
 #include <iostream>
 #include <vector>
@@ -12,16 +18,19 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
 #include "Shader.h"
 
 
+//Size of window
 const GLuint WIDTH = 702, HEIGHT = 1062;
 
+// initial camera position
 glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f, 5.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f, 0.0f);
 
-// Camera rotation
+// initial Camera rotation
 float yaw   = -90.0f; // start facing -Z
 float pitch = 0.0f;
 
@@ -31,12 +40,14 @@ glm::vec3 initialCameraFront = cameraFront;
 float initialYaw   = -90.0f; 
 float initialPitch = 0.0f;
 
+
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 float screenToNDC_X(float x) { return (2.0f * x / WIDTH) - 1.0f; }
 float screenToNDC_Y(float y) { return 1.0f - (2.0f * y / HEIGHT); }
 
+//Creat Verticies function
 std::vector<GLfloat> createPrismVertices(const std::vector<std::pair<int,int>>& corners, float zFront, float zBack)
 {
     if(corners.size() != 4)
@@ -83,6 +94,7 @@ glm::vec4 rgb255(int r, int g, int b, int a = 255) {
 }
 
 
+// Create circle verticies function
 std::vector<GLfloat> createCircleVertices(float centerX, float centerY, float z, float radius, int segments = 32)
 {
     std::vector<GLfloat> vertices;
@@ -111,8 +123,11 @@ std::vector<GLfloat> createCircleVertices(float centerX, float centerY, float z,
     return vertices;
 }
 
+// main
 int main()
 {
+
+    // initialize glf window 
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
@@ -130,8 +145,13 @@ int main()
 
     glViewport(0,0,WIDTH,HEIGHT);
     glEnable(GL_DEPTH_TEST);
-
+     
+    // Include shader files
     Shader shader("basic.vs","basic.frag");
+
+    //--------------------------------------------------------
+    // Creation of objects
+    //--------------------------------------------------------
 
     // --- Glasses Case (on top of Bible) ---
     std::vector<std::pair<int,int>> corners1 = {
@@ -847,40 +867,40 @@ int main()
     {
         glfwPollEvents();
 
-        // Camera movement
-    float cameraSpeed = 0.01f;                // forward/backward speed
-    float strafeSpeed = cameraSpeed * 0.5f;   // left/right speed is half
-    float angleSpeed  = 0.25f;                 // degrees per key press/frame
+            // Camera movement
+        float cameraSpeed = 0.01f;                // forward/backward speed
+        float strafeSpeed = cameraSpeed * 0.5f;   // left/right speed is half
+        float angleSpeed  = 0.25f;                 // degrees per key press/frame
 
-    glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
+        glm::vec3 right = glm::normalize(glm::cross(cameraFront, cameraUp));
 
-    // Position controls (WASD)
-    if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += cameraSpeed * cameraUp;
-    if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraUp;
-    if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPos += cameraSpeed * cameraFront;
-    if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraFront;
-    if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos -= strafeSpeed * right;
-    if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += strafeSpeed * right;
+        // Position controls (WASD)
+        if(glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) cameraPos += cameraSpeed * cameraUp;
+        if(glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraUp;
+        if(glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) cameraPos += cameraSpeed * cameraFront;
+        if(glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) cameraPos -= cameraSpeed * cameraFront;
+        if(glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) cameraPos -= strafeSpeed * right;
+        if(glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) cameraPos += strafeSpeed * right;
 
-    // Clamp vertical movement
-    cameraPos.y = glm::clamp(cameraPos.y, -5.0f, 5.0f);
+        // Clamp vertical movement
+        cameraPos.y = glm::clamp(cameraPos.y, -5.0f, 5.0f);
 
-    // Rotation controls (Arrow Keys)
-    if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)  yaw   -= angleSpeed;
-    if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) yaw   += angleSpeed;
-    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)    pitch += angleSpeed;
-    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)  pitch -= angleSpeed;
+        // Rotation controls (Arrow Keys)
+        if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)  yaw   -= angleSpeed;
+        if(glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) yaw   += angleSpeed;
+        if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)    pitch += angleSpeed;
+        if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)  pitch -= angleSpeed;
 
-    // Constrain pitch to avoid flipping
-    if(pitch > 89.0f) pitch = 89.0f;
-    if(pitch < -89.0f) pitch = -89.0f;
+        // Constrain pitch to avoid flipping
+        if(pitch > 89.0f) pitch = 89.0f;
+        if(pitch < -89.0f) pitch = -89.0f;
 
-    // Recalculate cameraFront from yaw/pitch
-    glm::vec3 front;
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(front);
+        // Recalculate cameraFront from yaw/pitch
+        glm::vec3 front;
+        front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+        front.y = sin(glm::radians(pitch));
+        front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+        cameraFront = glm::normalize(front);
 
 
         // Clear screen
@@ -1134,6 +1154,7 @@ int main()
         glfwSwapBuffers(window);
     }
 
+    // Clean memory
     glDeleteVertexArrays(1,&VAO1); glDeleteBuffers(1,&VBO1);
     glDeleteVertexArrays(1,&VAO2); glDeleteBuffers(1,&VBO2);
     glDeleteVertexArrays(1,&VAO3); glDeleteBuffers(1,&VBO3);
@@ -1141,6 +1162,7 @@ int main()
     return 0;
 }
 
+// Register key commands
 void key_callback(GLFWwindow* window,int key,int scancode,int action,int mode)
 {
     if(key==GLFW_KEY_ESCAPE && action==GLFW_PRESS)
