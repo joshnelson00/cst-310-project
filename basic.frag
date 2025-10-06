@@ -1,8 +1,17 @@
 #version 330 core
 out vec4 FragColor;
-uniform vec4 prismColor; // one color per prism
+
+in vec2 TexCoord;
+
+uniform vec4 prismColor;
+uniform sampler2D ourTexture;
+uniform bool useTexture;
 
 void main()
 {
-    FragColor = prismColor;
+    if (useTexture) {
+        FragColor = texture(ourTexture, TexCoord);
+    } else {
+        FragColor = prismColor;
+    }
 }
