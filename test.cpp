@@ -1,38 +1,79 @@
-// Textured Rectangular Prism in OpenGL
-// Using GLFW, GLEW, GLM, and STB_IMAGE
-
 #include <iostream>
 #include <vector>
-
-#define GLEW_STATIC
+#include <cmath>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// STB_IMAGE_IMPLEMENTATION should be defined in exactly one .cpp file
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
-
 // Window dimensions
 const GLuint WIDTH = 800, HEIGHT = 600;
 
-// Camera - static position looking at the origin
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+// Camera
+glm::vec3 cameraPos = glm::vec3(0.0f, 12.0f, 30.0f);
+glm::vec3 cameraTarget = glm::vec3(0.0f, 10.0f, 0.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-// No animation, keeping the prism static
 // Function prototypes
-GLuint loadTexture(const char* path);
-
-// Camera view matrix will be static
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 // The MAIN function
 int main() {
-    // Init GLFW
-    // Init GLFW
+    // Water bottle parameters
+    float H = 23.0f;                  // total height
+    float R_base = 4.0f;              // wide cylinder base
+    float R_neck = 3.5f;              // narrow neck
+    float H_shoulder_start = 18.0f;   // height where taper begins
+    float H_shoulder_end = 20.0f;     // height where taper ends
+    int N_theta = 120;                // number of angular segments
+    int N_z = 200;                    // number of vertical segments
+
+    // Generate vertices
+    std::vector<GLfloat> vertices;
+    std::vector<GLuint> indices;
+
+    // Generate vertices
+    for (int i = 0; i <= N_z; ++i) {
+        float z = i * H / N_z;
+
+        // Compute radius using the smooth shoulder function
+        float R;
+        if (z < H_shoulder_start) {
+            R = R_base;
+        } else if (z <= H_shoulder_end) {
+            R = R_neck + 0.5f * (R_base - R_neck) *
+                (1.0f + cos(M_PI * (z - H_shoulder_start) / (H_shoulder_end - H_shoulder_start)));
+        } else {
+            R = R_neck;
+        }
+
+        for (int j = 0; j <= N_theta; ++j) {
+            float theta = j * 2.0f * M_PI / N_theta;
+            float x = R * cos(theta);
+            float y = R * sin(theta);
+
+            // Store vertex position
+            vertices.push_back(x);
+            vertices.push_back(z);  // Using z as up axis
+            vertices.push_back(y);
+        }
+    }
+
+    // Generate indices for triangle strips
+    for (int i = 0; i < N_z; ++i) {
+        for (int j = 0; j <= N_theta; ++j) {
+            indices.push_back(i * (N_theta + 1) + j);
+            indices.push_back((i + 1) * (N_theta + 1) + j);
+        }
+        // Add degenerate triangle for strip connection
+        if (i < N_z - 1) {
+            indices.push_back((i + 1) * (N_theta + 1) + N_theta);
+            indices.push_back((i + 1) * (N_theta + 1));
+        }
+    }
+
+    // Initialize GLFW
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -40,15 +81,14 @@ int main() {
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     // Create a GLFWwindow object
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Textured Rectangular Prism", nullptr, nullptr);
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "Water Bottle Mesh", nullptr, nullptr);
     if (window == nullptr) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
-
-    // No input callbacks needed
+    glfwSetKeyCallback(window, key_callback);
 
     // Initialize GLEW
     glewExperimental = GL_TRUE;
@@ -58,169 +98,99 @@ int main() {
     }
 
     // Define the viewport dimensions
-    glViewport(0, 0, WIDTH, HEIGHT);
-
-    // Setup OpenGL options
-    glEnable(GL_DEPTH_TEST);
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glViewport(0, 0, width, height);
 
     // Build and compile our shader program
-    // Vertex shader
     const char* vertexShaderSource = R"(
         #version 330 core
         layout (location = 0) in vec3 position;
-        layout (location = 1) in vec2 texCoord;
-        
-        out vec2 TexCoord;
         
         uniform mat4 model;
         uniform mat4 view;
         uniform mat4 projection;
+        out vec3 FragPos;
         
         void main()
         {
             gl_Position = projection * view * model * vec4(position, 1.0f);
-            TexCoord = texCoord;
+            FragPos = vec3(model * vec4(position, 1.0f));
         }
     )";
 
-    // Fragment shader
+    // In the fragment shader, replace the existing code with:
     const char* fragmentShaderSource = R"(
         #version 330 core
-        in vec2 TexCoord;
-        
-        out vec4 color;
-        
-        uniform sampler2D ourTexture;
+        in vec3 FragPos;  // Add this varying to get fragment position
+        out vec4 FragColor;
         
         void main()
-        {   
-            color = texture(ourTexture, TexCoord);
+        {
+            // If the y-coordinate is below the shoulder start, color it purple
+            if (FragPos.y < 20.0f) {  // Match H_shoulder_start
+                FragColor = vec4(0.5f, 0.0f, 0.8f, 1.0f);  // Purple color
+            }
+            else if (FragPos.y < 20.5f) {
+                FragColor = vec4(0.5f, 0.5f, 0.5f, 1.0f);  // light grey
+            }
+            else {
+                FragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);  // black
+            }
         }
     )";
 
-    // Vertex shader
+    // Compile vertex shader
     GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
     glCompileShader(vertexShader);
-    // Check for compile time errors
-    GLint success;
-    GLchar infoLog[512];
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
 
-    // Fragment shader
+    // Compile fragment shader
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
     glCompileShader(fragmentShader);
-    // Check for compile time errors
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-    if (!success) {
-        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
 
     // Link shaders
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    // Check for linking errors
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-    if (!success) {
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    // Set up vertex data and attribute pointers for a cube
-    // Positions          // Texture Coords
-    GLfloat vertices[] = {
-        // Back face
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        // Front face
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        // Left face
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        // Right face
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        // Bottom face
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        // Top face
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    // Set up buffers
-    GLuint VBO, VAO;
+    // Set up vertex data and attribute pointers
+    GLuint VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
     // Position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
-    // Texture coordinate attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
 
     glBindVertexArray(0); // Unbind VAO
 
-    // Load and create a texture
-    GLuint texture = loadTexture("kleenex-box.jpg");
-    if (texture == 0) {
-        std::cerr << "Failed to load texture" << std::endl;
-        return -1;
-    }
+    // Enable depth testing
+    glEnable(GL_DEPTH_TEST);
 
-    // Main rendering loop
+    // Wireframe mode (comment out for solid)
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+    // Render loop
     while (!glfwWindowShouldClose(window)) {
-        // Check for events
+        // Check and call events
         glfwPollEvents();
 
-        // Clear the screen
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        // Clear the color and depth buffer
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Use the shader program
@@ -231,27 +201,22 @@ int main() {
         glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
         glm::mat4 projection = glm::perspective(45.0f, (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
 
-        // Static rotation (no animation)
-        model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+        // Rotate the model for better viewing
+        model = glm::rotate(model, (float)glfwGetTime() * 0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
 
         // Get their uniform locations
         GLint modelLoc = glGetUniformLocation(shaderProgram, "model");
         GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
         GLint projLoc = glGetUniformLocation(shaderProgram, "projection");
-        
+
         // Pass them to the shaders
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
         glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-        // Bind Texture
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(glGetUniformLocation(shaderProgram, "ourTexture"), 0);
-
-        // Render the cube
+        // Draw the water bottle
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawElements(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
         // Swap the screen buffers
@@ -261,47 +226,16 @@ int main() {
     // Properly de-allocate all resources
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
-    
-    // Terminate GLFW, clearing any resources allocated by GLFW
+    glDeleteBuffers(1, &EBO);
+    glDeleteProgram(shaderProgram);
+
+    // Terminate GLFW
     glfwTerminate();
     return 0;
 }
 
-// Load a texture from file
-GLuint loadTexture(const char* path) {
-    // Generate texture ID and load texture data
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    
-    int width, height, nrComponents;
-    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data) {
-        GLenum format;
-        if (nrComponents == 1)
-            format = GL_RED;
-        else if (nrComponents == 3)
-            format = GL_RGB;
-        else if (nrComponents == 4)
-            format = GL_RGBA;
-
-        glBindTexture(GL_TEXTURE_2D, textureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        // Set texture parameters
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-        stbi_image_free(data);
-    } else {
-        std::cerr << "Texture failed to load at path: " << path << std::endl;
-        stbi_image_free(data);
-        return 0;
-    }
-
-    return textureID;
+// Is called whenever a key is pressed/released via GLFW
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, GL_TRUE);
 }
-
-// All movement functions have been removed

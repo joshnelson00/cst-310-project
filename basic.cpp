@@ -169,6 +169,12 @@ std::vector<GLfloat> createCircleVertices(float centerX, float centerY, float z,
 
 int main()
 {
+    // Water bottle mesh variables (declared at function scope)
+    GLuint waterBottleVAO = 0, waterBottleVBO = 0, waterBottleEBO = 0;
+    std::vector<GLfloat> waterBottleVertices;
+    std::vector<GLuint> waterBottleIndices;
+    glm::vec3 bottlePosition(-0.7f, 0.05f, -0.9f);  // x, y, z position
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,3);
@@ -912,6 +918,103 @@ int main()
 
 
 
+    // --- Waterbottle Mesh ---
+    // Make the bottle much smaller (reduced from original)
+    float scale = 0.4f;
+    float H = 18.0f * scale;            // total height (scaled down to 40% of original)
+    float R_base = 3.0f * scale;       // wide cylinder base (scaled down)
+    float R_neck = 2.6f * scale;        // narrow neck (scaled down)
+    float H_shoulder_start = 15.0f * scale; // height where taper begins (scaled)
+    float H_shoulder_end = 16.0f * scale;;   // height where taper ends (scaled)
+    int N_theta = 60;                    // number of angular segments
+    int N_z = 50;                        // number of vertical segments
+
+    // Clear any existing data
+    waterBottleVertices.clear();
+    waterBottleIndices.clear();
+
+    // Generate vertices
+    for (int i = 0; i <= N_z; ++i) {
+        float z = i * H / N_z;
+
+        // Compute radius using the smooth shoulder function
+        float R;
+        if (z < H_shoulder_start) {
+            R = R_base;
+        } else if (z <= H_shoulder_end) {
+            R = R_neck + 0.5f * (R_base - R_neck) *
+                (1.0f + cos(M_PI * (z - H_shoulder_start) / (H_shoulder_end - H_shoulder_start)));
+        } else {
+            R = R_neck;
+        }
+
+        // Calculate color based on height - solid colors only
+        glm::vec3 color;
+        if (z < H_shoulder_start) {
+            color = glm::vec3(0.3137f, 0.2039f, 0.4902f); // Purple
+        } else if (z < H_shoulder_end + 0.05f) {  // Silver band
+            color = glm::vec3(0.5294f, 0.4980f, 0.5608f); // Silver
+        } else {
+            color = glm::vec3(0.1176f, 0.1059f, 0.1098f); // Black lid
+        }
+
+        for (int j = 0; j <= N_theta; ++j) {
+            float theta = j * 2.0f * M_PI / N_theta;
+            float x = R * cos(theta);
+            float y = R * sin(theta);
+
+            // Position (centered at origin, will be transformed by model matrix)
+            waterBottleVertices.push_back(x * 0.04f);     // x position (scaled down)
+            waterBottleVertices.push_back((z - H/2.0f) * 0.04f); // y position (centered vertically)
+            waterBottleVertices.push_back(y * 0.04f);     // z position (centered)
+            
+            // Color
+            waterBottleVertices.push_back(color.r);
+            waterBottleVertices.push_back(color.g);
+            waterBottleVertices.push_back(color.b);
+        }
+    }
+
+    // Generate indices for triangle strips
+    for (int i = 0; i < N_z; ++i) {
+        for (int j = 0; j <= N_theta; ++j) {
+            waterBottleIndices.push_back(i * (N_theta + 1) + j);
+            waterBottleIndices.push_back((i + 1) * (N_theta + 1) + j);
+        }
+        // Add degenerate triangle for strip connection
+        if (i < N_z - 1) {
+            waterBottleIndices.push_back((i + 1) * (N_theta + 1) + N_theta);
+            waterBottleIndices.push_back((i + 1) * (N_theta + 1));
+        }
+    }
+
+    // Create and bind VAO/VBO for water bottle if not already created
+    if (waterBottleVAO == 0) {
+        glGenVertexArrays(1, &waterBottleVAO);
+        glGenBuffers(1, &waterBottleVBO);
+        glGenBuffers(1, &waterBottleEBO);
+    }
+
+    glBindVertexArray(waterBottleVAO);
+
+    // Bind and set vertex buffer
+    glBindBuffer(GL_ARRAY_BUFFER, waterBottleVBO);
+    glBufferData(GL_ARRAY_BUFFER, waterBottleVertices.size() * sizeof(GLfloat), waterBottleVertices.data(), GL_STATIC_DRAW);
+
+    // Bind and set element buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, waterBottleEBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, waterBottleIndices.size() * sizeof(GLuint), waterBottleIndices.data(), GL_STATIC_DRAW);
+
+    // Position attribute (3 floats) - location 0 in shader
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)0);
+    
+    // Color attribute (3 floats) - location 2 in shader (matches shader's layout)
+    glEnableVertexAttribArray(2);  // Changed from 1 to 2 to match shader
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+
+    glBindVertexArray(0);
+
     // --- Render loop ---
     while(!glfwWindowShouldClose(window))
     {
@@ -1063,29 +1166,25 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, vertices15.size()/3);
         glBindVertexArray(0);
 
-        // Draw waterbottle
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color16));
-        glBindVertexArray(VAO16);
-        glDrawArrays(GL_TRIANGLES, 0, vertices16.size()/3);
+        // Draw waterbottle mesh with position transformation
+        shader.Use();
+        glm::mat4 bottleModel = glm::mat4(1.0f);
+        bottleModel = glm::translate(bottleModel, bottlePosition);
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(bottleModel));
+        
+        // Enable vertex attributes for the water bottle
+        glBindVertexArray(waterBottleVAO);
+        glEnableVertexAttribArray(0); // position
+        glEnableVertexAttribArray(2); // color
+        
+        // Draw the water bottle
+        glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)waterBottleIndices.size(), GL_UNSIGNED_INT, 0);
+        
+        // Clean up
         glBindVertexArray(0);
-
-        // Draw waterbottle neck
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color17));
-        glBindVertexArray(VAO17);
-        glDrawArrays(GL_TRIANGLES, 0, vertices17.size()/3);
-        glBindVertexArray(0);
-
-        // Draw waterbottle silver ring
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color18));
-        glBindVertexArray(VAO18);
-        glDrawArrays(GL_TRIANGLES, 0, vertices18.size()/3);
-        glBindVertexArray(0);
-
-        // Draw waterbottle Lid
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color19));
-        glBindVertexArray(VAO19);
-        glDrawArrays(GL_TRIANGLES, 0, vertices19.size()/3);
-        glBindVertexArray(0);
+        
+        // Reset model matrix for other objects
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
         // Draw Cabinet Base Support 3
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color20));
