@@ -12,8 +12,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
-#include "Camera.h"
 #include "Shader.h"
 
 
@@ -35,11 +36,12 @@ float initialPitch = 0.0f;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+GLuint loadTexture(const char* path);
 
 float screenToNDC_X(float x) { return (2.0f * x / WIDTH) - 1.0f; }
 float screenToNDC_Y(float y) { return 1.0f - (2.0f * y / HEIGHT); }
 
-std::vector<GLfloat> createPrismVertices(const std::vector<std::pair<int,int>>& corners, float zFront, float zBack)
+std::vector<GLfloat> createPrismVertices(const std::vector<std::pair<int,int>>& corners, float zFront, float zBack, bool withTexCoords = false)
 {
     if(corners.size() != 4)
     {
@@ -56,27 +58,79 @@ std::vector<GLfloat> createPrismVertices(const std::vector<std::pair<int,int>>& 
     float x3 = screenToNDC_X(corners[3].first);
     float y3 = screenToNDC_Y(corners[3].second);
 
-    std::vector<GLfloat> vertices = {
-        x0, y0, zFront,  x1, y1, zFront,  x2, y2, zFront,
-        x2, y2, zFront,  x3, y3, zFront,  x0, y0, zFront,
+    if (withTexCoords) {
+        // With texture coordinates (5 components per vertex: x, y, z, s, t)
+        return {
+            // Front face
+            x0, y0, zFront,  0.0f, 0.0f,
+            x1, y1, zFront,  1.0f, 0.0f,
+            x2, y2, zFront,  1.0f, 1.0f,
+            x2, y2, zFront,  1.0f, 1.0f,
+            x3, y3, zFront,  0.0f, 1.0f,
+            x0, y0, zFront,  0.0f, 0.0f,
 
-        x0, y0, zBack,   x1, y1, zBack,   x2, y2, zBack,
-        x2, y2, zBack,   x3, y3, zBack,   x0, y0, zBack,
+            // Back face
+            x1, y1, zBack,   1.0f, 0.0f,
+            x0, y0, zBack,   0.0f, 0.0f,
+            x3, y3, zBack,   0.0f, 1.0f,
+            x3, y3, zBack,   0.0f, 1.0f,
+            x2, y2, zBack,   1.0f, 1.0f,
+            x1, y1, zBack,   1.0f, 0.0f,
 
-        x0, y0, zFront,  x0, y0, zBack,   x3, y3, zBack,
-        x3, y3, zBack,   x3, y3, zFront,  x0, y0, zFront,
+            // Left face
+            x0, y0, zBack,   1.0f, 0.0f,
+            x0, y0, zFront,  1.0f, 1.0f,
+            x3, y3, zFront,  0.0f, 1.0f,
+            x3, y3, zFront,  0.0f, 1.0f,
+            x3, y3, zBack,   0.0f, 0.0f,
+            x0, y0, zBack,   1.0f, 0.0f,
 
-        x1, y1, zFront,  x1, y1, zBack,   x2, y2, zBack,
-        x2, y2, zBack,   x2, y2, zFront,  x1, y1, zFront,
+            // Right face
+            x1, y1, zFront,  1.0f, 1.0f,
+            x1, y1, zBack,   1.0f, 0.0f,
+            x2, y2, zBack,   0.0f, 0.0f,
+            x2, y2, zBack,   0.0f, 0.0f,
+            x2, y2, zFront,  0.0f, 1.0f,
+            x1, y1, zFront,  1.0f, 1.0f,
 
-        x0, y0, zFront,  x1, y1, zFront,  x1, y1, zBack,
-        x1, y1, zBack,   x0, y0, zBack,   x0, y0, zFront,
+            // Top face (corrected)
+            x0, y0, zFront,  0.0f, 0.0f,  // bottom-left
+            x1, y1, zFront,  1.0f, 0.0f,  // bottom-right
+            x2, y2, zFront,  1.0f, 1.0f,  // top-right
+            x0, y0, zFront,  0.0f, 0.0f,  // bottom-left
+            x2, y2, zFront,  1.0f, 1.0f,  // top-right
+            x3, y3, zFront,  0.0f, 1.0f,  // top-left
 
-        x3, y3, zFront,  x2, y2, zFront,  x2, y2, zBack,
-        x2, y2, zBack,   x3, y3, zBack,   x3, y3, zFront
-    };
+            // Bottom face
+            x0, y0, zBack,   0.0f, 0.0f,
+            x1, y1, zBack,   1.0f, 0.0f,
+            x3, y3, zBack,   0.0f, 1.0f,
+            x3, y3, zBack,   0.0f, 1.0f,
+            x1, y1, zBack,   1.0f, 0.0f,
+            x2, y2, zBack,   1.0f, 1.0f
+        };
+    } else {
+        // Without texture coordinates (3 components per vertex: x, y, z)
+        return {
+            x0, y0, zFront,  x1, y1, zFront,  x2, y2, zFront,
+            x2, y2, zFront,  x3, y3, zFront,  x0, y0, zFront,
 
-    return vertices;
+            x0, y0, zBack,   x1, y1, zBack,   x2, y2, zBack,
+            x2, y2, zBack,   x3, y3, zBack,   x0, y0, zBack,
+
+            x0, y0, zFront,  x0, y0, zBack,   x3, y3, zBack,
+            x3, y3, zBack,   x3, y3, zFront,  x0, y0, zFront,
+
+            x1, y1, zFront,  x1, y1, zBack,   x2, y2, zBack,
+            x2, y2, zBack,   x2, y2, zFront,  x1, y1, zFront,
+
+            x0, y0, zFront,  x1, y1, zFront,  x1, y1, zBack,
+            x1, y1, zBack,   x0, y0, zBack,   x0, y0, zFront,
+
+            x3, y3, zFront,  x2, y2, zFront,  x2, y2, zBack,
+            x2, y2, zBack,   x3, y3, zBack,   x3, y3, zFront
+        };
+    }
 }
 
 // Helper to convert 0-255 RGB to glm::vec4 (RGBA)
@@ -662,22 +716,36 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
-    // Tissue Box ---
+    // Kleenex Box ---
     std::vector<std::pair<int,int>> corners28 = {
-    {442, 788}, {487, 788}, {487, 880}, {442, 880}
+        {442, 788}, {486, 788}, {486, 880}, {442, 880}
     };
 
     glm::vec4 color28 = rgb255(240, 234, 235); // white
-    std::vector<GLfloat> vertices28 = createPrismVertices(corners28,-0.6f,-1.0f);
+    std::vector<GLfloat> vertices28 = createPrismVertices(corners28, -0.6f, -0.8f, true);  // true means include texture coords
 
-    GLuint VAO28,VBO28;
-    glGenVertexArrays(1,&VAO28);
-    glGenBuffers(1,&VBO28);
+    // Load Kleenex box texture
+    GLuint kleenexTexture = loadTexture("kleenex-box.jpg");
+    if (kleenexTexture == 0) {
+        std::cerr << "Failed to load Kleenex box texture" << std::endl;
+        return -1;
+    }
+
+    GLuint VAO28, VBO28;
+    glGenVertexArrays(1, &VAO28);
+    glGenBuffers(1, &VBO28);
     glBindVertexArray(VAO28);
-    glBindBuffer(GL_ARRAY_BUFFER,VBO28);
-    glBufferData(GL_ARRAY_BUFFER,vertices28.size()*sizeof(GLfloat),vertices28.data(),GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO28);
+    glBufferData(GL_ARRAY_BUFFER, vertices28.size() * sizeof(GLfloat), vertices28.data(), GL_STATIC_DRAW);
+
+    // Position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)0);
     glEnableVertexAttribArray(0);
+
+    // Texture coordinate attribute (2 floats)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+
     glBindVertexArray(0);
 
     // Carpet ---
@@ -1079,11 +1147,15 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, vertices31.size()/3);
         glBindVertexArray(0);
 
-        // Draw Tissue Box
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color28));
+        // Draw Kleenex Box with texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, kleenexTexture);
+        glUniform1i(glGetUniformLocation(shader.Program, "ourTexture"), 0);
+        glUniform1i(glGetUniformLocation(shader.Program, "useTexture"), GL_TRUE);
         glBindVertexArray(VAO28);
-        glDrawArrays(GL_TRIANGLES, 0, vertices28.size()/3);
+        glDrawArrays(GL_TRIANGLES, 0, vertices28.size()/5); // Divide by 5 for x,y,z,s,t
         glBindVertexArray(0);
+        glUniform1i(glGetUniformLocation(shader.Program, "useTexture"), GL_FALSE);
 
         // Draw Carpet
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color29));
@@ -1160,7 +1232,45 @@ void key_callback(GLFWwindow* window,int key,int scancode,int action,int mode)
     }
 }
 
-void scroll_callback(GLFWwindow* window,double xoffset,double yoffset)
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    cameraPos.y += static_cast<float>(yoffset)*0.2f;
+    // Adjust camera position based on scroll
+    cameraPos += cameraFront * static_cast<float>(yoffset) * 0.1f;
+}
+
+// Load a texture from file
+GLuint loadTexture(const char* path) {
+    // Generate texture ID and load texture data
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    
+    int width, height, nrComponents;
+    unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+    if (data) {
+        GLenum format;
+        if (nrComponents == 1)
+            format = GL_RED;
+        else if (nrComponents == 3)
+            format = GL_RGB;
+        else if (nrComponents == 4)
+            format = GL_RGBA;
+
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+
+        // Set texture parameters
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+    } else {
+        std::cerr << "Texture failed to load at path: " << path << std::endl;
+        stbi_image_free(data);
+        return 0;
+    }
+
+    return textureID;
 }
