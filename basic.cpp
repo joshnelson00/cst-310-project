@@ -17,6 +17,57 @@
 
 #include "Shader.h"
 
+// Joycon shader sources
+static const char* joyconVertexShaderSrc = R"glsl(
+#version 330 core
+layout(location = 0) in vec2 aPos; // clip-space quad positions (-1..1)
+
+out vec2 v_uv; // 0..1 normalized coordinates across the screen
+
+void main() {
+    gl_Position = vec4(aPos, 0.0, 1.0);
+    // map clip-space (-1..1) to uv (0..1)
+    v_uv = (aPos * 0.5) + 0.5;
+}
+)glsl";
+
+static const char* joyconFragmentShaderSrc = R"glsl(
+#version 330 core
+in vec2 v_uv;
+out vec4 FragColor;
+
+uniform vec2 u_center;
+uniform vec2 u_size;
+uniform float u_radius;
+uniform vec3 u_color;
+uniform float u_edgeSoftness;
+
+// Signed distance to rounded rectangle
+float sdRoundRect(vec2 p, vec2 halfSize, float r) {
+    vec2 d = abs(p) - halfSize + vec2(r);
+    vec2 d_clamped = max(d, vec2(0.0));
+    float outside = length(d_clamped) - r;
+    float inside = min(max(d.x, d.y), 0.0) - r;
+    return outside + inside;
+}
+
+void main() {
+    vec2 p = v_uv - u_center;
+    vec2 halfSize = u_size * 0.5;
+
+    float dist = sdRoundRect(p, halfSize, u_radius);
+    float alpha = 1.0 - smoothstep(0.0, u_edgeSoftness, dist);
+
+    // Cut the joycon vertically in half
+    if (p.x > 0.0)
+        discard;
+
+    if (alpha <= 0.001) discard;
+
+    FragColor = vec4(u_color, alpha);
+}
+)glsl";
+
 
 const GLuint WIDTH = 702, HEIGHT = 1062;
 
@@ -167,6 +218,51 @@ std::vector<GLfloat> createCircleVertices(float centerX, float centerY, float z,
     return vertices;
 }
 
+GLuint compileShader(GLenum type, const char* src) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &src, nullptr);
+    glCompileShader(shader);
+
+    GLint ok;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &ok);
+    if (!ok) {
+        GLint logLen;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLen);
+        std::string log(logLen, '\0');
+        glGetShaderInfoLog(shader, logLen, nullptr, &log[0]);
+        std::cerr << "Shader compile error: " << log << "\n";
+        glDeleteShader(shader);
+        return 0;
+    }
+    return shader;
+}
+
+GLuint createProgram(const char* vsrc, const char* fsrc) {
+    GLuint vs = compileShader(GL_VERTEX_SHADER, vsrc);
+    GLuint fs = compileShader(GL_FRAGMENT_SHADER, fsrc);
+    if (!vs || !fs) return 0;
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, vs);
+    glAttachShader(prog, fs);
+    glLinkProgram(prog);
+
+    GLint ok;
+    glGetProgramiv(prog, GL_LINK_STATUS, &ok);
+    if (!ok) {
+        GLint logLen;
+        glGetProgramiv(prog, GL_INFO_LOG_LENGTH, &logLen);
+        std::string log(logLen, '\0');
+        glGetProgramInfoLog(prog, logLen, nullptr, &log[0]);
+        std::cerr << "Program link error: " << log << "\n";
+        glDeleteProgram(prog);
+        return 0;
+    }
+
+    glDeleteShader(vs);
+    glDeleteShader(fs);
+    return prog;
+}
+
 int main()
 {
     // Water bottle mesh variables (declared at function scope)
@@ -192,6 +288,98 @@ int main()
 
     glViewport(0,0,WIDTH,HEIGHT);
     glEnable(GL_DEPTH_TEST);
+
+        // ===== Initialize Joycon 3D =====
+    // Create a half-pill shaped joycon
+    float joyconLength = 0.115f;      // Length of the joycon
+    float joyconRadius = 0.05f;      // Radius of the half-cylinder
+    int segments = 32;              // Number of segments for the half-cylinder
+    
+    // Create vertices for the half-pill joycon
+    std::vector<GLfloat> joyconVertices;
+    
+    // Function to add a vertex with normal for lighting
+    auto addVertex = [&](float x, float y, float z, float nx, float ny, float nz) {
+        joyconVertices.push_back(x);
+        joyconVertices.push_back(y);
+        joyconVertices.push_back(z);
+        joyconVertices.push_back(nx);
+        joyconVertices.push_back(ny);
+        joyconVertices.push_back(nz);
+    };
+    
+    // Create the half-cylinder part
+    float halfLength = joyconLength * 0.5f;
+    
+    // Create the curved part (half-cylinder)
+    for (int i = 0; i <= segments; ++i) {
+        float theta = i * (M_PI / segments);  // Only half the circle (0 to 180 degrees)
+        float x = cosf(theta) * joyconRadius;
+        float z = sinf(theta) * joyconRadius;
+        
+        // Add vertices for the front face
+        addVertex(x, halfLength, z, x, 0, z);
+        addVertex(x, -halfLength, z, x, 0, z);
+        
+        // Add flat face (the cut part)
+        if (i < segments) {
+            // Add two triangles to form a quad for the flat face
+            addVertex(0, -halfLength, 0, 0, 0, -1);
+            addVertex(0, halfLength, 0, 0, 0, -1);
+            addVertex(x, halfLength, 0, 0, 0, -1);
+            
+            addVertex(0, -halfLength, 0, 0, 0, -1);
+            addVertex(x, halfLength, 0, 0, 0, -1);
+            addVertex(x, -halfLength, 0, 0, 0, -1);
+        }
+    }
+    
+    // Add the semi-circular caps
+    for (int cap = 0; cap < 2; ++cap) {
+        float y = (cap == 0) ? halfLength : -halfLength;
+        
+        // Center point
+        addVertex(0, y, 0, 0, (cap == 0) ? 1.0f : -1.0f, 0);
+        
+        // Create semi-circle of vertices
+        for (int i = 0; i <= segments; ++i) {
+            float theta = i * (M_PI / segments);  // 0 to 180 degrees
+            float x = cosf(theta) * joyconRadius;
+            float z = sinf(theta) * joyconRadius;
+            
+            addVertex(x, y, z, 0, (cap == 0) ? 1.0f : -1.0f, 0);
+            
+            // Add triangle fan for the cap
+            if (i > 0) {
+                addVertex(0, y, 0, 0, (cap == 0) ? 1.0f : -1.0f, 0);
+                addVertex(x, y, z, 0, (cap == 0) ? 1.0f : -1.0f, 0);
+            }
+        }
+    }
+    
+    // Define joycon color (bright red for visibility)
+    glm::vec4 joyconColor = rgb255(10, 185, 230);
+    
+    // Create VAO/VBO for the joycon
+    GLuint joyconVAO, joyconVBO;
+    glGenVertexArrays(1, &joyconVAO);
+    glGenBuffers(1, &joyconVBO);
+    glBindVertexArray(joyconVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, joyconVBO);
+    glBufferData(GL_ARRAY_BUFFER, joyconVertices.size() * sizeof(GLfloat), joyconVertices.data(), GL_STATIC_DRAW);
+    
+    // Position attribute (3 floats)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)0);
+    glEnableVertexAttribArray(0);
+    
+    // Normal attribute (3 floats)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
+    
+    glBindVertexArray(0);
+    
+    // Position for the joycon - centered and in front
+    glm::vec3 joyconPosition(0.874f, -0.025f, -0.6f);  // Centered and moved closer to camera
 
     Shader shader("basic.vs","basic.frag");
 
@@ -632,23 +820,6 @@ int main()
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
-    // Joy Con R ---
-    std::vector<std::pair<int,int>> corners25 = {
-    {658, 514}, {673, 514}, {673, 572}, {658, 572}
-    };
-
-    glm::vec4 color25 = rgb255(4, 135, 183); // blue
-    std::vector<GLfloat> vertices25 = createPrismVertices(corners25,-0.55f,-0.65f);
-
-    GLuint VAO25,VBO25;
-    glGenVertexArrays(1,&VAO25);
-    glGenBuffers(1,&VBO25);
-    glBindVertexArray(VAO25);
-    glBindBuffer(GL_ARRAY_BUFFER,VBO25);
-    glBufferData(GL_ARRAY_BUFFER,vertices25.size()*sizeof(GLfloat),vertices25.data(),GL_STATIC_DRAW);
-    glVertexAttribPointer(0,3,GL_FLOAT,GL_FALSE,3*sizeof(GLfloat),(GLvoid*)0);
-    glEnableVertexAttribArray(0);
-    glBindVertexArray(0);
 
     // tv leg 1 ---
     std::vector<std::pair<int,int>> corners26 = {
@@ -1216,12 +1387,6 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, vertices24.size()/3);
         glBindVertexArray(0);
 
-        // Draw Joy Con R
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color25));
-        glBindVertexArray(VAO25);
-        glDrawArrays(GL_TRIANGLES, 0, vertices25.size()/3);
-        glBindVertexArray(0);
-
         // Draw TV Stand 1
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color26));
         glBindVertexArray(VAO26);
@@ -1303,6 +1468,28 @@ int main()
         glBindVertexArray(VAOHole);
         glDrawArrays(GL_TRIANGLE_FAN, 0, verticesHole.size()/3);
         glBindVertexArray(0);
+
+        // ===== Draw 3D Joycon =====
+        shader.Use();
+        
+        // Create model matrix for the joycon
+        glm::mat4 joyconModel = glm::mat4(1.0f);
+        joyconModel = glm::translate(joyconModel, joyconPosition);
+        joyconModel = glm::rotate(joyconModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate 90 degrees around Y-axis
+        
+        // Apply the model matrix to the shader
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(joyconModel));
+        
+        // Set the color (using your existing shader's color uniform)
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(joyconColor));
+        
+        // Draw the joycon with smooth shading
+        glBindVertexArray(joyconVAO);
+        glDrawArrays(GL_TRIANGLES, 0, joyconVertices.size() / 6);  // Divided by 6 because we now have 6 floats per vertex
+        glBindVertexArray(0);
+        
+        // Reset model matrix for other objects
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
         glfwSwapBuffers(window);
     }
