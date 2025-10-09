@@ -189,6 +189,120 @@ glm::vec4 rgb255(int r, int g, int b, int a = 255) {
     return glm::vec4(r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f);
 }
 
+// Rug height function
+float rugHeight(float x, float y) {
+    float freq1 = 8.0f;   // base frequency
+    float freq2 = 15.0f;  // higher frequency for fine detail
+    float freq3 = 30.0f;  // micro ripples
+    float amp1  = 0.05f;  // small peaks
+    float amp2  = 0.02f;  // finer variation
+    float amp3  = 0.01f;  // micro roughness
+
+    // layered noise-like sine waves for organic variation
+    float z =
+        amp1 * sinf(freq1 * x) * cosf(freq1 * y) +
+        amp2 * sinf(freq2 * x + 0.5f * cosf(freq2 * y)) +
+        amp3 * cosf(freq3 * (x + y));
+
+    return z;
+}
+
+// Function to create rug VAO
+GLuint createRugVAO() {
+    const float rugSize = 4.0f;  // Size of the rug (10x10 units)
+    const int segments = 50;      // Number of segments per side
+    const float step = rugSize / segments;
+    const float halfSize = rugSize * 0.5f;
+    
+    std::vector<GLfloat> vertices;
+    std::vector<GLuint> indices;
+    
+    // Generate vertices
+    for (int i = 0; i <= segments; ++i) {
+        for (int j = 0; j <= segments; ++j) {
+            // Calculate base coordinates
+            float x = (i * step) - halfSize;
+            float y = (j * step) - halfSize;
+            
+            // Calculate texture coordinates before applying height
+            float u = (x + halfSize) / rugSize;
+            float v = (y + halfSize) / rugSize;
+            
+            // Apply height function after we've calculated texture coords
+            float z = rugHeight(x, y);
+            
+            // Position (swapping Y and Z to make it vertical)
+            vertices.push_back(x);
+            vertices.push_back(y);
+            vertices.push_back(z);
+            
+            // Normal (approximate)
+            float eps = 0.1f;
+            float dx = rugHeight(x + eps, y) - rugHeight(x - eps, y);
+            float dz = rugHeight(x, y + eps) - rugHeight(x, y - eps);
+            glm::vec3 normal = glm::normalize(glm::vec3(-dx, 2.0f * eps, -dz));
+            
+            vertices.push_back(normal.x);
+            vertices.push_back(normal.y);
+            vertices.push_back(normal.z);
+            
+            // Use the pre-calculated texture coordinates
+            // These are based on the flat plane, not the deformed surface
+            vertices.push_back(u);
+            vertices.push_back(v);
+        }
+    }
+    
+    // Generate indices
+    for (int i = 0; i < segments; ++i) {
+        for (int j = 0; j < segments; ++j) {
+            int row1 = i * (segments + 1);
+            int row2 = (i + 1) * (segments + 1);
+            
+            // Two triangles per quad
+            indices.push_back(row1 + j);
+            indices.push_back(row2 + j);
+            indices.push_back(row1 + j + 1);
+            
+            indices.push_back(row1 + j + 1);
+            indices.push_back(row2 + j);
+            indices.push_back(row2 + j + 1);
+        }
+    }
+    
+    // Create and bind VAO/VBO/EBO
+    GLuint VAO, VBO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
+    
+    glBindVertexArray(VAO);
+    
+    // Vertex buffer
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+    
+    // Element buffer
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+    
+    // Position attribute (location = 0)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)0);
+    
+    // Texture coordinate attribute (location = 1)
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(6 * sizeof(GLfloat)));
+    
+    // Normal attribute (location = 2)
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(3 * sizeof(GLfloat)));
+    
+    glBindVertexArray(0);
+    
+    return VAO;
+}
+
 
 std::vector<GLfloat> createCircleVertices(float centerX, float centerY, float z, float radius, int segments = 32)
 {
@@ -1186,6 +1300,10 @@ int main()
 
     glBindVertexArray(0);
 
+    // Create rug VAO
+    GLuint rugVAO = createRugVAO();
+    const int rugNumIndices = 50 * 50 * 6;  // segments * segments * 2 triangles * 3 vertices
+
     // --- Render loop ---
     while(!glfwWindowShouldClose(window))
     {
@@ -1457,6 +1575,28 @@ int main()
         // Clean up
         glBindVertexArray(0);
         
+        // Draw the rug with texture
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, kleenexTexture);
+        glUniform1i(glGetUniformLocation(shader.Program, "ourTexture"), 0);
+        glUniform1i(glGetUniformLocation(shader.Program, "useTexture"), GL_TRUE);
+        
+        // Position and orient the rug to be vertical (aligned with Z-axis)
+        glm::mat4 rugModel = glm::mat4(1.0f);
+        rugModel = glm::translate(rugModel, glm::vec3(0.0f, -0.7f, 0.4f)); // Position in front of the view
+        rugModel = glm::rotate(rugModel, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f)); // Rotate to stand vertically
+        rugModel = glm::scale(rugModel, glm::vec3(0.5f, 0.5f, 0.1f)); // Scale with reduced depth
+        
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(rugModel));
+        
+        // Draw rug
+        glBindVertexArray(rugVAO);
+        glDrawElements(GL_TRIANGLES, rugNumIndices, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+        
+        // Reset texture state
+        glUniform1i(glGetUniformLocation(shader.Program, "useTexture"), GL_FALSE);
+        
         // Reset model matrix for other objects
         glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
 
@@ -1517,12 +1657,6 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, vertices28.size()/5); // Divide by 5 for x,y,z,s,t
         glBindVertexArray(0);
         glUniform1i(glGetUniformLocation(shader.Program, "useTexture"), GL_FALSE);
-
-        // Draw Carpet
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color29));
-        glBindVertexArray(VAO29);
-        glDrawArrays(GL_TRIANGLES, 0, vertices29.size()/3);
-        glBindVertexArray(0);
 
         // Draw Left Barn Door
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(colorDoor));
