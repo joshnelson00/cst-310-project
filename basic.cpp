@@ -1575,9 +1575,9 @@ int main()
         // Clean up
         glBindVertexArray(0);
         
-        // Draw the rug with texture
+        // Draw the rug with rug texture
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, kleenexTexture);
+        glBindTexture(GL_TEXTURE_2D, loadTexture("rug-texture.png"));
         glUniform1i(glGetUniformLocation(shader.Program, "ourTexture"), 0);
         glUniform1i(glGetUniformLocation(shader.Program, "useTexture"), GL_TRUE);
         
