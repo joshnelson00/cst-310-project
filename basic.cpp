@@ -357,9 +357,6 @@ int main()
         }
     }
     
-    // Define joycon color (bright red for visibility)
-    glm::vec4 joyconColor = rgb255(10, 185, 230);
-    
     // Create VAO/VBO for the joycon
     GLuint joyconVAO, joyconVBO;
     glGenVertexArrays(1, &joyconVAO);
@@ -378,8 +375,11 @@ int main()
     
     glBindVertexArray(0);
     
-    // Position for the joycon - centered and in front
-    glm::vec3 joyconPosition(0.874f, -0.025f, -0.6f);  // Centered and moved closer to camera
+    // Joycon positions and colors
+    glm::vec3 joyconPosition(0.874f, -0.025f, -0.6f);    // Blue joycon position (right side)
+    glm::vec3 joyconPositionR(0.6f, -0.025f, -0.6f);  // Red joycon position (left side)
+    glm::vec4 joyconColor = rgb255(10, 185, 230);      // Blue color
+    glm::vec4 joyconColorR = rgb255(230, 30, 30);      // Red color
 
     Shader shader("basic.vs","basic.frag");
 
@@ -1381,12 +1381,6 @@ int main()
         glDrawArrays(GL_TRIANGLES, 0, vertices23.size()/3);
         glBindVertexArray(0);
 
-        // Draw Joy Con L
-        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color24));
-        glBindVertexArray(VAO24);
-        glDrawArrays(GL_TRIANGLES, 0, vertices24.size()/3);
-        glBindVertexArray(0);
-
         // Draw TV Stand 1
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(color26));
         glBindVertexArray(VAO26);
@@ -1472,20 +1466,26 @@ int main()
         // ===== Draw 3D Joycon =====
         shader.Use();
         
-        // Create model matrix for the joycon
+        // Draw the blue joycon (right side)
         glm::mat4 joyconModel = glm::mat4(1.0f);
         joyconModel = glm::translate(joyconModel, joyconPosition);
-        joyconModel = glm::rotate(joyconModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Rotate 90 degrees around Y-axis
+        joyconModel = glm::rotate(joyconModel, glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
         
-        // Apply the model matrix to the shader
         glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(joyconModel));
-        
-        // Set the color (using your existing shader's color uniform)
         glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(joyconColor));
         
-        // Draw the joycon with smooth shading
         glBindVertexArray(joyconVAO);
-        glDrawArrays(GL_TRIANGLES, 0, joyconVertices.size() / 6);  // Divided by 6 because we now have 6 floats per vertex
+        glDrawArrays(GL_TRIANGLES, 0, joyconVertices.size() / 6);
+        
+        // Draw the red joycon (left side, mirrored)
+        glm::mat4 joyconModelR = glm::mat4(1.0f);
+        joyconModelR = glm::translate(joyconModelR, joyconPositionR);
+        joyconModelR = glm::rotate(joyconModelR, glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)); // Negative rotation for mirroring
+        
+        glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(joyconModelR));
+        glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(joyconColorR));
+        
+        glDrawArrays(GL_TRIANGLES, 0, joyconVertices.size() / 6);
         glBindVertexArray(0);
         
         // Reset model matrix for other objects
