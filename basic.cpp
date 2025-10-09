@@ -1351,6 +1351,109 @@ int main()
         // Draw the water bottle
         glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)waterBottleIndices.size(), GL_UNSIGNED_INT, 0);
         
+        // Create and draw the disk cap
+        {
+            static GLuint diskVAO = 0, diskVBO = 0, diskEBO = 0;
+            static int diskNumIndices = 0;
+            
+            if (diskVAO == 0) {
+                const float radius = 2.2f * 0.02f;  // Scaled neck radius (2.6 * 0.04)
+                const float height = 0.2f;          // Thickness of the disk
+                const int segments = 32;            // Number of segments for the disk
+                
+                std::vector<GLfloat> vertices;
+                std::vector<GLuint> indices;
+                
+                // Create top and bottom circles
+                for (int cap = 0; cap <= 1; ++cap) {
+                    float y = (cap == 0) ? -height/2.0f : height/2.0f;
+                    
+                    // Center point for this cap
+                    vertices.push_back(0.0f);  // x
+                    vertices.push_back(y);     // y
+                    vertices.push_back(0.0f);  // z
+                    
+                    // Circle points for this cap
+                    for (int i = 0; i <= segments; ++i) {
+                        float theta = 2.0f * 3.1415926f * float(i) / float(segments);
+                        float x = radius * cosf(theta);
+                        float z = radius * sinf(theta);
+                        vertices.push_back(x);
+                        vertices.push_back(y);
+                        vertices.push_back(z);
+                    }
+                }
+                
+                // Generate indices for the disk
+                // Top cap (first circle)
+                int centerTop = 0;
+                int centerBottom = segments + 2;  // +2 for center and last vertex of first circle
+                
+                // Top and bottom caps
+                for (int i = 0; i < segments; ++i) {
+                    // Top cap
+                    indices.push_back(centerTop);
+                    indices.push_back(centerTop + i + 1);
+                    indices.push_back(centerTop + ((i + 1) % segments) + 1);
+                    
+                    // Bottom cap (reverse winding)
+                    indices.push_back(centerBottom);
+                    indices.push_back(centerBottom + ((i + 1) % segments) + 1);
+                    indices.push_back(centerBottom + i + 1);
+                }
+                
+                // Sides
+                for (int i = 0; i < segments; ++i) {
+                    int next = (i + 1) % segments;
+                    
+                    // Triangle 1
+                    indices.push_back(centerTop + i + 1);
+                    indices.push_back(centerTop + next + 1);
+                    indices.push_back(centerBottom + i + 1);
+                    
+                    // Triangle 2
+                    indices.push_back(centerTop + next + 1);
+                    indices.push_back(centerBottom + next + 1);
+                    indices.push_back(centerBottom + i + 1);
+                }
+                
+                // Create and bind VAO/VBO/EBO
+                glGenVertexArrays(1, &diskVAO);
+                glGenBuffers(1, &diskVBO);
+                glGenBuffers(1, &diskEBO);
+                
+                glBindVertexArray(diskVAO);
+                
+                // Vertex buffer
+                glBindBuffer(GL_ARRAY_BUFFER, diskVBO);
+                glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);
+                
+                // Element buffer
+                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, diskEBO);
+                glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+                
+                // Position attribute
+                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (void*)0);
+                glEnableVertexAttribArray(0);
+                
+                diskNumIndices = indices.size();
+                glBindVertexArray(0);
+            }
+            
+            // Draw the disk cap
+            glUniform4fv(glGetUniformLocation(shader.Program, "prismColor"), 1, glm::value_ptr(rgb255(0, 0, 0))); // Black color
+            
+            // Position the disk at the top of the bottle
+            glm::mat4 diskModel = glm::mat4(1.0f);
+            // Position it at the top of the bottle (18.0 * 0.04 is the total height, 0.02 is half the disk height)
+            diskModel = glm::translate(diskModel, bottlePosition + glm::vec3(0.0f, -2.0f * 0.04f + 0.1f, 0.0f));
+            glUniformMatrix4fv(glGetUniformLocation(shader.Program, "model"), 1, GL_FALSE, glm::value_ptr(diskModel));
+            
+            glBindVertexArray(diskVAO);
+            glDrawElements(GL_TRIANGLES, diskNumIndices, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+        
         // Clean up
         glBindVertexArray(0);
         
